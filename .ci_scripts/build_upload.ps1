@@ -8,7 +8,9 @@ function CopyFile($from, $to) {
 $version = Get-Content -TotalCount 1 res\version.txt
 
 $repo = ""
-if ("$env:GITHUB_REF" -match "^refs/tags/v") {
+if ("$env:GITHUB_REF" -match "refs/heads/main") {
+    $repo = "release"
+} elseif ("$env:GITHUB_REF" -match "^refs/tags/v") {
     $repo = "release"
 } elseif ("$env:GITHUB_REF" -eq "refs/heads/master") {
     $repo = "development"
