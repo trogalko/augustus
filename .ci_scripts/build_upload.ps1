@@ -78,7 +78,8 @@ if (!$env:UPLOAD_TOKEN) {
 }
 
 echo "Uploading $deploy_file to $repo/windows/$version"
-curl -u "$env:UPLOAD_TOKEN" -T "deploy/$deploy_file" "https://augustus.josecadete.net/upload/$repo/windows/$version/${deploy_file}"
+curl -F "file=@deploy/$deploy_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
+#curl -u "$env:UPLOAD_TOKEN" -T "deploy/$deploy_file" "https://augustus.josecadete.net/upload/$repo/windows/$version/${deploy_file}"
 if (!$?) {
     throw "Unable to upload"
 }
@@ -88,7 +89,8 @@ $assets_file = "assets-$version-$repo.zip"
 7z a "$assets_file" assets
 
 echo "Uploading $assets_file to $repo/windows/$version"
-curl -u "$env:UPLOAD_TOKEN" -T "$assets_file" "https://augustus.josecadete.net/upload/$repo/assets/$version/${assets_file}"
+curl -F "file=@$assets_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
+#curl -u "$env:UPLOAD_TOKEN" -T "$assets_file" "https://augustus.josecadete.net/upload/$repo/assets/$version/${assets_file}"
 if (!$?) {
     throw "Unable to upload assets"
 }
