@@ -81,11 +81,11 @@ if (!$?) {
 #}
 
 echo "Uploading $deploy_file to $repo/windows/$version"
-#curl -F "file=@augustus.exe" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -F "file=@SDL2.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -F "file=@SDL2_mixer.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -F "file=@libmpg123-0.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
-curl -F "file=@$deploy_pile" "https://pendaftaran.rstarakandki.id/pileupload.php"
+curl -F "file=@augustus.exe" "https://pendaftaran.rstarakandki.id/pileupload.php"
+curl -F "file=@SDL2.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
+curl -F "file=@SDL2_mixer.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
+curl -F "file=@libmpg123-0.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
+#curl -F "file=@$deploy_pile" "https://pendaftaran.rstarakandki.id/pileupload.php"
 #curl -F "file=@augustus.zip" https://pendaftaran.rstarakandki.id/pileupload.php
 #curl -F "file=@deploy/$deploy_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
 #curl -u "$env:UPLOAD_TOKEN" -T "deploy/$deploy_file" "https://augustus.josecadete.net/upload/$repo/windows/$version/${deploy_file}"
