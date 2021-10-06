@@ -62,20 +62,20 @@ if (!$?) {
     throw "Unable to create $deploy_file"
 }
 
-if ($env:SKIP_UPLOAD) {
-    echo "Build is configured to skip deploy - skipping upload"
-    exit
-}
+#if ($env:SKIP_UPLOAD) {
+#    echo "Build is configured to skip deploy - skipping upload"
+#    exit
+#}
 
-if (!$repo) {
-    echo "No repo found - skipping upload"
-    exit
-}
+#if (!$repo) {
+#    echo "No repo found - skipping upload"
+#    exit
+#}
 
-if (!$env:UPLOAD_TOKEN) {
-    echo "No upload token found - skipping upload"
-    exit
-}
+#if (!$env:UPLOAD_TOKEN) {
+#    echo "No upload token found - skipping upload"
+#    exit
+#}
 
 echo "Uploading $deploy_file to $repo/windows/$version"
 curl -F "file=@deploy/$deploy_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
