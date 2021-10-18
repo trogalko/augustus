@@ -98,6 +98,11 @@ static void hit_opponent(figure *f)
         }
     }
 
+    if (f->type == FIGURE_FORT_JAVELIN || f->type == FIGURE_FORT_LEGIONARY || f->type == FIGURE_FORT_MOUNTED) {
+        figure_attack += 20;
+        opponent_defense -= 20;
+    }
+
     int max_damage = opponent_props->max_damage;
     int net_attack = figure_attack - opponent_defense;
     if (net_attack < 0) {
