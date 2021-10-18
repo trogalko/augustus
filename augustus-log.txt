@@ -1,0 +1,9 @@
+INFO: Augustus version 3.0.1-20211018-161192c
+INFO: Initializing SDL
+INFO: SDL initialized
+INFO: Loading game from working directory
+ERROR: 'c3.eng' or 'c3_mm.eng' files not found or too large.
+INFO: Loading game from base path C:\Git\augustus\
+ERROR: 'c3.eng' or 'c3_mm.eng' files not found or too large.
+INFO: Location:  C:\Users\troga\AppData\Roaming\augustus\augustus\
+INFO: Exiting: game pre-init failed
