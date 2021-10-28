@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+sudo set -e
 
 function get_sdl_lib_url {
   local MODULE=$1
