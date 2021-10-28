@@ -94,13 +94,13 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
         run: |
-          ./.ci_scripts/run_cmake.sh
-          ./.ci_scripts/run_build.sh
+          sudo bash ./.ci_scripts/run_cmake.sh
+          sudo bash ./.ci_scripts/run_build.sh
       - name: Upload development artifacts
         env:
           UPLOAD_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
         run: |
-          ./.ci_scripts/build_upload.sh
+          sudo bash ./.ci_scripts/build_upload.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
