@@ -39,7 +39,9 @@ static void button_empire(int param1, int param2);
 static void button_policy(int param1, int param2);
 static void button_resource(int resource_index, int param2);
 
-static scrollbar_type scrollbar = { 580, RESOURCE_Y_OFFSET, RESOURCE_ROW_HEIGHT * MAX_VISIBLE_ROWS, on_scroll, 4 };
+static scrollbar_type scrollbar = {
+    580, RESOURCE_Y_OFFSET, RESOURCE_ROW_HEIGHT * MAX_VISIBLE_ROWS, 560, MAX_VISIBLE_ROWS, on_scroll, 0, 4
+};
 
 static generic_button resource_buttons[] = {
     {375, 392, 200, 24, button_prices, button_none, 1, 0},
@@ -98,7 +100,7 @@ static void init(void)
 {
     city_resource_determine_available();
     data.list = city_resource_get_potential();
-    scrollbar_init(&scrollbar, 0, data.list->size - MAX_VISIBLE_ROWS);
+    scrollbar_init(&scrollbar, 0, data.list->size);
     if (data.list->size > MAX_VISIBLE_ROWS) {
         data.margin_right = 48;
     }
@@ -142,7 +144,7 @@ static void draw_resource_status_text(int resource, int x, int y, int box_width)
         width += lang_text_draw(54, 5, x + width, y, FONT_NORMAL_WHITE);
         int import_limit = city_resource_import_over(resource);
         if (import_limit > 0) {
-            text_draw_number(import_limit, 0, " ", x + width, y, FONT_NORMAL_WHITE);
+            text_draw_number(import_limit, 0, " ", x + width, y, FONT_NORMAL_WHITE, 0);
         } else {
             text_draw(translation_for(TR_ADVISOR_TRADE_MAX), x + width, y, FONT_NORMAL_WHITE, 0);
         }
@@ -161,7 +163,7 @@ static void draw_resource_status_text(int resource, int x, int y, int box_width)
     } else if (trade_status & TRADE_STATUS_EXPORT) {
         int width = (box_width - 15 - lang_text_get_width(54, 6, FONT_NORMAL_WHITE)) / 2;
         width += lang_text_draw(54, 6, x + width, y, FONT_NORMAL_WHITE);
-        text_draw_number(city_resource_export_over(resource), 0, " ", x + width, y, FONT_NORMAL_WHITE);
+        text_draw_number(city_resource_export_over(resource), 0, " ", x + width, y, FONT_NORMAL_WHITE, 0);
     } else if (trade_flags & TRADE_STATUS_EXPORT) {
         text_draw_centered(translation_for(TR_ADVISOR_TRADE_EXPORTABLE), x, y, box_width, FONT_NORMAL_GREEN, 0);
     } else if (trade_flags_potential & TRADE_STATUS_EXPORT) {
@@ -172,13 +174,50 @@ static void draw_resource_status_text(int resource, int x, int y, int box_width)
 static int draw_background(void)
 {
     outer_panel_draw(0, 0, 40, ADVISOR_HEIGHT);
-    image_draw(image_group(GROUP_ADVISOR_ICONS) + 4, 10, 10);
+    image_draw(image_group(GROUP_ADVISOR_ICONS) + 4, 10, 10, COLOR_MASK_NONE, SCALE_NONE);
 
     lang_text_draw(54, 0, 60, 12, FONT_LARGE_BLACK);
     int width = lang_text_get_width(54, 1, FONT_NORMAL_BLACK);
     lang_text_draw(54, 1, 600 - width, 38, FONT_NORMAL_BLACK);
 
-    inner_panel_draw(16, RESOURCE_Y_OFFSET - 2, 38 - data.margin_right / 16, 21);
+    button_border_draw(375, 392, 200, 24, data.focus_button_id == 1);
+    lang_text_draw_centered(54, 2, 375, 398, 200, FONT_NORMAL_BLACK);
+
+    button_border_draw(160, 392, 200, 24, data.focus_button_id == 2);
+    lang_text_draw_centered(54, 30, 160, 398, 200, FONT_NORMAL_BLACK);
+
+    if (data.list->size > MAX_VISIBLE_ROWS) {
+        inner_panel_draw(scrollbar.x + 4, scrollbar.y + 28, 2, scrollbar.height / BLOCK_SIZE - 3);
+    }
+
+    int land_policy_available = building_monument_working(BUILDING_CARAVANSERAI);
+    int sea_policy_available = building_monument_working(BUILDING_LIGHTHOUSE);
+
+    button_border_draw(45, 390, 40, 30, land_policy_available && data.focus_button_id == 3);
+    int image_id;
+    
+    if (land_policy_available) {
+        image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE) + 1;
+    } else {
+        image_id = assets_get_image_id("UI", "Land Trade Policy Off Button");
+    }
+    image_draw(image_id, 51, 394, COLOR_MASK_NONE, SCALE_NONE);
+
+    button_border_draw(95, 390, 40, 30, sea_policy_available && data.focus_button_id == 4);
+
+    if (sea_policy_available) {
+        image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE);
+    } else {
+        image_id = assets_get_image_id("UI", "Sea Trade Policy Off Button");
+    }
+    image_draw(image_id, 99, 394, COLOR_MASK_NONE, SCALE_NONE);
+
+    return ADVISOR_HEIGHT;
+}
+
+static void draw_foreground(void)
+{
+    inner_panel_draw(16, RESOURCE_Y_OFFSET - 2, 38 - data.margin_right / BLOCK_SIZE, 21);
 
     int y_offset = RESOURCE_Y_OFFSET;
     for (int i = 0; i < data.list->size && i < MAX_VISIBLE_ROWS; i++) {
@@ -187,8 +226,8 @@ static int draw_background(void)
         int image_id = image_group(GROUP_RESOURCE_ICONS) + image_offset;
         const image *img = image_get(image_id);
         int base_y = (RESOURCE_ROW_HEIGHT - img->height) / 2;
-        image_draw(image_id, 32, y_offset + base_y);
-        image_draw(image_id, 584 - data.margin_right, y_offset + base_y);
+        image_draw(image_id, 32, y_offset + base_y, COLOR_MASK_NONE, SCALE_NONE);
+        image_draw(image_id, 584 - data.margin_right, y_offset + base_y, COLOR_MASK_NONE, SCALE_NONE);
 
         if (data.focus_button_id - 5 == i) {
             button_border_draw(64, y_offset, 512 - data.margin_right, RESOURCE_ROW_HEIGHT, 1);
@@ -212,39 +251,13 @@ static int draw_background(void)
     }
 
     button_border_draw(375, 392, 200, 24, data.focus_button_id == 1);
-    lang_text_draw_centered(54, 2, 375, 398, 200, FONT_NORMAL_BLACK);
-
     button_border_draw(160, 392, 200, 24, data.focus_button_id == 2);
-    lang_text_draw_centered(54, 30, 160, 398, 200, FONT_NORMAL_BLACK);
-
-    if (data.list->size > MAX_VISIBLE_ROWS) {
-        inner_panel_draw(scrollbar.x + 4, scrollbar.y + 28, 2, scrollbar.height / 16 - 3);
-    }
 
     int land_policy_available = building_monument_working(BUILDING_CARAVANSERAI);
     int sea_policy_available = building_monument_working(BUILDING_LIGHTHOUSE);
-
     button_border_draw(45, 390, 40, 30, land_policy_available && data.focus_button_id == 3);
-    int image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE) + 1;
-    image_draw(image_id, 51, 394);
-
-    if (!land_policy_available) {
-        graphics_shade_rect(45, 390, 40, 30, 0);
-    }
-
     button_border_draw(95, 390, 40, 30, sea_policy_available && data.focus_button_id == 4);
-    image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE);
-    image_draw(image_id, 99, 394);
 
-    if (!sea_policy_available) {
-        graphics_shade_rect(95, 390, 40, 30, 0);
-    }
-
-    return ADVISOR_HEIGHT;
-}
-
-static void draw_foreground(void)
-{
     if (data.list->size > MAX_VISIBLE_ROWS) {
         scrollbar_draw(&scrollbar);
     }
@@ -257,15 +270,9 @@ static void on_scroll(void)
 
 static int handle_mouse(const mouse *m)
 {
-    if (scrollbar_handle_mouse(&scrollbar, m)) {
-        return 1;
-    }
-    int button_id = data.focus_button_id;
-    int result = generic_buttons_handle_mouse(m, 0, 0, resource_buttons, MAX_VISIBLE_ROWS + 4, &data.focus_button_id);
-    if (button_id != data.focus_button_id) {
-        window_request_refresh();
-    }
-    return result;
+    data.focus_button_id = 0;
+    return scrollbar_handle_mouse(&scrollbar, m, 1) ||
+        generic_buttons_handle_mouse(m, 0, 0, resource_buttons, MAX_VISIBLE_ROWS + 4, &data.focus_button_id);
 }
 
 static void apply_policy(int selected_policy)
@@ -282,7 +289,7 @@ static void show_policy(trade_policy_type policy_type)
 {
     data.policy_type = policy_type;
     if (!policy_options[policy_type].items[0].image_id) {
-        int base_policy_image = assets_get_image_id("UI_Elements",
+        int base_policy_image = assets_get_image_id("UI",
             policy_options[policy_type].base_image_name);
         policy_options[policy_type].items[0].image_id = base_policy_image + 1;
         policy_options[policy_type].items[1].image_id = base_policy_image + 2;
@@ -295,7 +302,7 @@ static void show_policy(trade_policy_type policy_type)
 
 static void button_prices(int param1, int param2)
 {
-    window_trade_prices_show();
+    window_trade_prices_show(17, 53, 622, 334);
 }
 
 static void button_empire(int param1, int param2)

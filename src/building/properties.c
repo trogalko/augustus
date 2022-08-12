@@ -4,16 +4,16 @@
 #include "core/image_group.h" 
 #include "type.h"
 
-#define AUGUSTUS_BUILDINGS 60
+#define AUGUSTUS_BUILDINGS 65
 
 augustus_building_properties_mapping augustus_building_properties[AUGUSTUS_BUILDINGS] = {
-    {BUILDING_ROADBLOCK, { 1, 1, 0, 0, 0 }, "Roadblocks", 0},
-    {BUILDING_WORKCAMP, { 3, 0, 0, 0, 0 }, "Construction_Guilds", "Workcamp Central"},
-    {BUILDING_GRAND_TEMPLE_CERES, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Ceres Complex Off"},
-    {BUILDING_GRAND_TEMPLE_NEPTUNE, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Neptune Complex Off"},
-    {BUILDING_GRAND_TEMPLE_MERCURY, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Mercury Complex Off"},
-    {BUILDING_GRAND_TEMPLE_MARS, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Mars Complex Off"},
-    {BUILDING_GRAND_TEMPLE_VENUS, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Venus Complex Off"},
+    {BUILDING_ROADBLOCK, { 1, 1, 0, 0, 0 }, "Logistics", 0},
+    {BUILDING_WORKCAMP, { 3, 0, 0, 0, 0 }, "Logistics", "Workcamp Central"},
+    {BUILDING_GRAND_TEMPLE_CERES, { 7, 1, 0, 0, 0 }, "Religion", "Ceres Complex Off"},
+    {BUILDING_GRAND_TEMPLE_NEPTUNE, { 7, 1, 0, 0, 0 }, "Religion", "Neptune Complex Off"},
+    {BUILDING_GRAND_TEMPLE_MERCURY, { 7, 1, 0, 0, 0 }, "Religion", "Mercury Complex Off"},
+    {BUILDING_GRAND_TEMPLE_MARS, { 7, 1, 0, 0, 0 }, "Religion", "Mars Complex Off"},
+    {BUILDING_GRAND_TEMPLE_VENUS, { 7, 1, 0, 0, 0 }, "Religion", "Venus Complex Off"},
     {BUILDING_SMALL_POND, { 2, 1, 0, 0, 0 }, "Aesthetics", "s pond south off"},
     {BUILDING_LARGE_POND, { 3, 1, 0, 0, 0 }, "Aesthetics", "l pond south off"},
     {BUILDING_PINE_TREE, { 1, 1, 0, 0, 0 }, "Aesthetics", "ornamental pine"},
@@ -37,13 +37,13 @@ augustus_building_properties_mapping augustus_building_properties[AUGUSTUS_BUILD
     {BUILDING_PAVILION_ORANGE, { 1, 1, 0, 0, 0 }, "Aesthetics", "pavilion orange"},
     {BUILDING_PAVILION_YELLOW, { 1, 1, 0, 0, 0 }, "Aesthetics", "pavilion yellow"},
     {BUILDING_PAVILION_GREEN, { 1, 1, 0, 0, 0 }, "Aesthetics", "pavilion green"},
-    {BUILDING_SMALL_STATUE_ALT, { 1, 1, 0, 0, 14 }, "Aesthetics", "sml statue 2"},
-    {BUILDING_SMALL_STATUE_ALT_B, { 1, 1, 0, 0, 14 }, "Aesthetics", "sml statue 3"},
+    {BUILDING_SMALL_STATUE_ALT, { 1, 1, 0, 0, 13 }, "Aesthetics", "sml statue 2"},
+    {BUILDING_SMALL_STATUE_ALT_B, { 1, 1, 0, 0, 13 }, "Aesthetics", "sml statue 3"},
     {BUILDING_OBELISK, { 2, 1, 0, 0, 0 }, "Aesthetics", "obelisk"},
-    {BUILDING_PANTHEON, { 7, 1, 0, 0, 0 }, "Grand_Temples", "Pantheon Off"},
-    {BUILDING_ARCHITECT_GUILD, { 2, 1, 0, 0, 0 }, "Construction_Guilds", "Arch Guild OFF"},
-    {BUILDING_MESS_HALL, { 3, 0, 0, 0, 0 }, "Military_Buildings", "Mess OFF Central"},
-    {BUILDING_LIGHTHOUSE, { 3, 1, 0, 0, 0 }, "Econ_Logistics", "Lighthouse OFF"},
+    {BUILDING_PANTHEON, { 7, 1, 0, 0, 0 }, "Religion", "Pantheon Off"},
+    {BUILDING_ARCHITECT_GUILD, { 2, 1, 0, 0, 0 }, "Logistics", "Arch Guild OFF"},
+    {BUILDING_MESS_HALL, { 3, 0, 0, 0, 0 }, "Military", "Mess OFF Central"},
+    {BUILDING_LIGHTHOUSE, { 3, 1, 0, 0, 0 }, "Logistics", "Lighthouse OFF"},
     {BUILDING_TAVERN, { 2, 0, 0, 0, 0 }, "Entertainment", "Tavern OFF"},
     {BUILDING_GRAND_GARDEN, { 2, 1, 0, 0, 0 }, "", ""},
     {BUILDING_ARENA, { 3, 0, 0, 0, 0 }, "Entertainment", "Arena OFF" },
@@ -56,17 +56,22 @@ augustus_building_properties_mapping augustus_building_properties[AUGUSTUS_BUILD
     {BUILDING_DECORATIVE_COLUMN, { 1, 1, 0, 0, 0 }, "Aesthetics", "sml col B"},
     {BUILDING_COLONNADE, { 1, 1, 0, 0, 0 }, "Aesthetics", "G Colonnade 01"},
     {BUILDING_GARDEN_PATH, { 1, 1, 0, 0, 0 }, "Aesthetics", "Garden Path 01"},
-    {BUILDING_LARARIUM, {1,0,0,0,0}, "Minor_Monuments", "Lararium 01"},
-    {BUILDING_NYMPHAEUM, {3,0,0,0,0}, "Minor_Monuments", "Nymphaeum OFF"},
-    {BUILDING_SMALL_MAUSOLEUM, {2,1,0,0,1}, "Minor_Monuments", "Mausoleum S"},
-    {BUILDING_LARGE_MAUSOLEUM, {3,1,0,0,0}, "Minor_Monuments", "Mausoleum L"},
-    {BUILDING_WATCHTOWER, {2,1,0,0,0}, "Military_Buildings", "Watchtower C OFF"},
-    {BUILDING_LIBRARY, {2,0,0,0,0}, "Building_Upgrades", "Downgraded_Library"},
-    {BUILDING_CARAVANSERAI, { 4, 1, 0, 0, 0 }, "Econ_Logistics", "Caravanserai N OFF"},
+    {BUILDING_LARARIUM, {1,0,0,0,0}, "Religion", "Lararium 01"},
+    {BUILDING_NYMPHAEUM, {3,0,0,0,0}, "Religion", "Nymphaeum OFF"},
+    {BUILDING_SMALL_MAUSOLEUM, {2,1,0,0,1}, "Religion", "Mausoleum S"},
+    {BUILDING_LARGE_MAUSOLEUM, {3,1,0,0,0}, "Religion", "Mausoleum L"},
+    {BUILDING_WATCHTOWER, {2,1,0,0,0}, "Military", "Watchtower C OFF"},
+    {BUILDING_LIBRARY, {2,0,0,0,0}, "Health_Education", "Downgraded_Library"},
+    {BUILDING_CARAVANSERAI, { 4, 1, 0, 0, 0 }, "Logistics", "Caravanserai_C_OFF"},
     {BUILDING_SMALL_STATUE, {1,1,0,0,-12}, "Aesthetics", "V Small Statue" },
     {BUILDING_ROOFED_GARDEN_WALL, { 1, 1, 0, 0, 0 }, "Aesthetics", "R Garden Wall 01"},
     {BUILDING_GARDEN_WALL_GATE, { 1, 1, 0, 0, 0 }, "Aesthetics", "Garden Gate"},
-    {BUILDING_PALISADE, {1,1,0,0,0}, "Military_Buildings", "Pal Wall C 01"},
+    {BUILDING_PALISADE, {1,1,0,0,0}, "Military", "Pal Wall C 01"},
+    {BUILDING_HEDGE_GATE_DARK, { 1, 1, 0, 0, 0 }, "Aesthetics", "D Hedge Gate"},
+    {BUILDING_HEDGE_GATE_LIGHT, { 1, 1, 0, 0, 0 }, "Aesthetics", "L Hedge Gate"},
+    {BUILDING_PALISADE_GATE, {1, 1, 0, 0, 0}, "Military", "Palisade_Gate"},
+    {BUILDING_MEDIUM_STATUE, {2,1,0,0,1}, "Aesthetics", "Med_Statue_R" },
+    {BUILDING_GLADIATOR_STATUE, {1,1,0,0,1}, "Aesthetics", ""},
 };
 
 void init_augustus_building_properties()
@@ -244,6 +249,7 @@ static int is_vanilla_building_with_changed_properties(building_type type)
     switch (type) {
         case BUILDING_LIBRARY:
         case BUILDING_SMALL_STATUE:
+        case BUILDING_MEDIUM_STATUE:
             return 1;
         default:
             return 0;

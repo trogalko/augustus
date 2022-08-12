@@ -13,6 +13,7 @@
 #include "building/lighthouse.h"
 #include "building/maintenance.h"
 #include "building/warehouse.h"
+#include "city/buildings.h"
 #include "city/culture.h"
 #include "city/emperor.h"
 #include "city/festival.h"
@@ -29,6 +30,7 @@
 #include "city/sentiment.h"
 #include "city/trade.h"
 #include "city/victory.h"
+#include "core/config.h"
 #include "core/random.h"
 #include "editor/editor.h"
 #include "empire/city.h"
@@ -72,6 +74,7 @@ static void advance_year(void)
 
 static void advance_month(void)
 {
+    int new_year = 0;
     city_migration_reset_newcomers();
     city_health_update();
     scenario_random_event_process();
@@ -86,6 +89,7 @@ static void advance_month(void)
     formation_update_monthly_morale_at_rest();
     city_message_decrease_delays();
     city_sentiment_decrement_blessing_boost();
+    building_industry_advance_stats();
     building_industry_start_strikes();
     building_trim();
 
@@ -97,6 +101,7 @@ static void advance_month(void)
 
     if (game_time_advance_month()) {
         advance_year();
+        new_year = 1;
     } else {
         city_ratings_update(0,1);
     }
@@ -108,6 +113,9 @@ static void advance_month(void)
     tutorial_on_month_tick();
     if (setting_monthly_autosave()) {
         game_file_write_saved_game("autosave.svx");
+    }
+    if (new_year && config_get(CONFIG_GP_CH_YEARLY_AUTOSAVE)) {
+        game_file_write_saved_game("autosave-year.svx");
     }
 }
 
@@ -128,16 +136,18 @@ static void advance_day(void)
 static void advance_tick(void)
 {
     // NB: these ticks are noop:
-    // 0, 9, 10, 11, 13, 14, 15, 26, 41, 42, 47
+    // 0, 10, 11, 13, 14, 15, 26, 41
+    // max is 49
     switch (game_time_tick()) {
         case 1: city_gods_calculate_moods(1); break;
         case 2: sound_music_update(0); break;
         case 3: widget_minimap_invalidate(); break;
         case 4: city_emperor_update(); break;
         case 5: formation_update_all(0); break;
-        case 6: map_natives_check_land(); break;
+        case 6: map_natives_check_land(1); break;
         case 7: map_road_network_update(); break;
         case 8: building_granaries_calculate_stocks(); break;
+        case 9: city_buildings_update_plague(); break;
         case 12: house_service_decay_houses_covered(); break;
         case 16: city_resource_calculate_warehouse_stocks(); break;
         case 17: city_resource_calculate_food_stocks_and_supply_wheat(); break;

@@ -3,8 +3,10 @@
 #include "city/ratings.h"
 #include "core/calc.h"
 #include "core/config.h"
+#include "core/lang.h"
 #include "graphics/generic_button.h"
 #include "graphics/image.h"
+#include "graphics/image_button.h"
 #include "graphics/lang_text.h"
 #include "graphics/panel.h"
 #include "graphics/text.h"
@@ -34,28 +36,28 @@ void draw_rating_column(int x_offset, int y_offset, int value, int has_reached)
         value_to_draw = 25;
     }
 
-    image_draw(image_base, x_offset, y);
+    image_draw(image_base, x_offset, y, COLOR_MASK_NONE, SCALE_NONE);
     for (int i = 0; i < 2 * value_to_draw; i++) {
-        image_draw(image_base + 1, x_offset + 11, --y);
+        image_draw(image_base + 1, x_offset + 11, --y, COLOR_MASK_NONE, SCALE_NONE);
     }
     if (has_reached) {
-        image_draw(image_base + 2, x_offset - 6, y);
+        image_draw(image_base + 2, x_offset - 6, y, COLOR_MASK_NONE, SCALE_NONE);
     }
 }
 
 static int draw_background(void)
 {
     outer_panel_draw(0, 0, 40, ADVISOR_HEIGHT);
-    image_draw(image_group(GROUP_ADVISOR_ICONS) + 3, 10, 10);
+    image_draw(image_group(GROUP_ADVISOR_ICONS) + 3, 10, 10, COLOR_MASK_NONE, SCALE_NONE);
     int width = lang_text_draw(53, 0, 60, 12, FONT_LARGE_BLACK);
     if (!scenario_criteria_population_enabled() || scenario_is_open_play()) {
         lang_text_draw(53, 7, 80 + width, 17, FONT_NORMAL_BLACK);
     } else {
         width += lang_text_draw(53, 6, 80 + width, 17, FONT_NORMAL_BLACK);
-        text_draw_number(scenario_criteria_population(), '@', ")", 80 + width, 17, FONT_NORMAL_BLACK);
+        text_draw_number(scenario_criteria_population(), '@', ")", 80 + width, 17, FONT_NORMAL_BLACK, 0);
     }
 
-    image_draw(image_group(GROUP_RATINGS_BACKGROUND), 60, 48);
+    image_draw(image_group(GROUP_RATINGS_BACKGROUND), 60, 48, COLOR_MASK_NONE, SCALE_NONE);
 
     int open_play = scenario_is_open_play();
 
@@ -66,7 +68,7 @@ static int draw_background(void)
     lang_text_draw_centered(53, 1, 80, 294, 110, FONT_NORMAL_BLACK);
     text_draw_number_centered(culture, 80, 309, 100, FONT_LARGE_BLACK);
     width = text_draw_number(has_culture_goal ? scenario_criteria_culture() : 0,
-        '@', " ", 85, 334, FONT_NORMAL_BLACK);
+        '@', " ", 85, 334, FONT_NORMAL_BLACK, 0);
     lang_text_draw(53, 5, 85 + width, 334, FONT_NORMAL_BLACK);
     int has_reached = !has_culture_goal || culture >= scenario_criteria_culture();
     draw_rating_column(110, 274, culture, has_reached);
@@ -78,7 +80,7 @@ static int draw_background(void)
     lang_text_draw_centered(53, 2, 200, 294, 110, FONT_NORMAL_BLACK);
     text_draw_number_centered(prosperity, 200, 309, 100, FONT_LARGE_BLACK);
     width = text_draw_number(has_prosperity_goal ? scenario_criteria_prosperity() : 0,
-        '@', " ", 205, 334, FONT_NORMAL_BLACK);
+        '@', " ", 205, 334, FONT_NORMAL_BLACK, 0);
     lang_text_draw(53, 5, 205 + width, 334, FONT_NORMAL_BLACK);
     has_reached = !has_prosperity_goal || prosperity >= scenario_criteria_prosperity();
     draw_rating_column(230, 274, prosperity, has_reached);
@@ -90,7 +92,7 @@ static int draw_background(void)
     lang_text_draw_centered(53, 3, 320, 294, 110, FONT_NORMAL_BLACK);
     text_draw_number_centered(peace, 320, 309, 100, FONT_LARGE_BLACK);
     width = text_draw_number(has_peace_goal ? scenario_criteria_peace() : 0,
-        '@', " ", 325, 334, FONT_NORMAL_BLACK);
+        '@', " ", 325, 334, FONT_NORMAL_BLACK, 0);
     lang_text_draw(53, 5, 325 + width, 334, FONT_NORMAL_BLACK);
     has_reached = !has_peace_goal || peace >= scenario_criteria_peace();
     draw_rating_column(350, 274, peace, has_reached);
@@ -102,7 +104,7 @@ static int draw_background(void)
     lang_text_draw_centered(53, 4, 440, 294, 110, FONT_NORMAL_BLACK);
     text_draw_number_centered(favor, 440, 309, 100, FONT_LARGE_BLACK);
     width = text_draw_number(has_favor_goal ? scenario_criteria_favor() : 0,
-        '@', " ", 445, 334, FONT_NORMAL_BLACK);
+        '@', " ", 445, 334, FONT_NORMAL_BLACK, 0);
     lang_text_draw(53, 5, 445 + width, 334, FONT_NORMAL_BLACK);
     has_reached = !has_favor_goal || favor >= scenario_criteria_favor();
     draw_rating_column(470, 274, favor, has_reached);
@@ -133,7 +135,7 @@ static int draw_background(void)
                 int max = calc_bound(city_ratings_prosperity_max(), 0, 100);
                 if (prosperity < max) {
                     int width = lang_text_draw(CUSTOM_TRANSLATION, TR_ADVISOR_MAX_ATTAINABLE_PROSPERITY_IS, 72, 374 + line_width, FONT_NORMAL_WHITE);
-                    text_draw_number(max, 0, ".", 72 + width, 374 + line_width, FONT_NORMAL_WHITE);
+                    text_draw_number(max, 0, ".", 72 + width, 374 + line_width, FONT_NORMAL_WHITE, 0);
                 }
             }
             break;

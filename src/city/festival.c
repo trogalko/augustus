@@ -143,8 +143,6 @@ void city_festival_schedule(void)
         city_data.festival.planned.months_to_go = 3;
         cost = city_data.festival.large_cost;
     } else {
-        //city_data.festival.planned.months_to_go = 4;
-        //cost = city_data.festival.grand_cost;
         city_data.festival.planned.months_to_go = 2;        
         cost = city_data.festival.small_cost;
     }

@@ -62,6 +62,7 @@ static const char SOUND_FILES_WON[][32] = {
 };
 
 static const char SOUND_FILE_LOSE[] = "wavs/lose_game.wav";
+static const char SOUND_FILE_CUSTOM_SCENARIO_WIN[] = "wavs/WinAssignment.wav";
 
 static struct {
     intermezzo_type type;
@@ -78,7 +79,9 @@ static void init(intermezzo_type type, void (*callback)(void))
     sound_speech_stop();
     if (data.type == INTERMEZZO_FIRED) {
         sound_speech_play_file(SOUND_FILE_LOSE);
-    } else if (!scenario_is_custom()) {
+    } else if (scenario_is_custom()) {
+        sound_speech_play_file(SOUND_FILE_CUSTOM_SCENARIO_WIN);
+    } else { // If it isn't a custom scenario
         int mission = scenario_campaign_mission();
         if (data.type == INTERMEZZO_MISSION_BRIEFING) {
             sound_speech_play_file(SOUND_FILES_BRIEFING[mission]);
@@ -90,7 +93,7 @@ static void init(intermezzo_type type, void (*callback)(void))
 
 static void draw_background(void)
 {
-    graphics_clear_screens();
+    graphics_clear_screen();
 
     int mission = scenario_is_custom() ? 0 : scenario_campaign_mission();
     int image = image_group(GROUP_INTERMEZZO_BACKGROUND) + 2 * mission;

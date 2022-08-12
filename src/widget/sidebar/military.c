@@ -181,7 +181,8 @@ static void draw_layout_buttons(int x, int y, int background, const formation *m
         const generic_button *btn = &button_offsets[i - start_formation];
 
         if (background) {
-            image_draw_scaled(image_group(GROUP_FORT_FORMATIONS) + offsets[i], x + btn->x + 3, y + btn->y + 3, 0.5);
+            image_draw(image_group(GROUP_FORT_FORMATIONS) + offsets[i], (x + btn->x + 3) * 2, (y + btn->y + 3) * 2,
+                COLOR_MASK_NONE, 2.0f);
         } else {
             int is_selected_formation = m->layout == IMAGE_OFFSETS_TO_FORMATION[offsets[i]];
             int is_button_focused = i == data.inner_buttons_focus_id - 1 + start_formation;
@@ -242,15 +243,17 @@ static void draw_military_info_text(int x_offset, int y_offset)
     const formation *m = formation_get(legion->formation_id);
     update_legion_info(legion, m);
 
-    int formation_image = image_group(GROUP_FIGURE_FORT_STANDARD_ICONS) + m->legion_id;
+    int formation_image_id = image_group(GROUP_FIGURE_FORT_STANDARD_ICONS) + m->legion_id;
+    const image *formation_image = image_get(formation_image_id);
 
     // Legion name
-    image_draw(formation_image,
-        x_offset + (CONTENT_WIDTH - image_get(formation_image)->width) / 2, y_offset + 12);
+    image_draw(formation_image_id,
+        x_offset + (CONTENT_WIDTH - formation_image->width - formation_image->x_offset) / 2, y_offset + 12,
+        COLOR_MASK_NONE, SCALE_NONE);
     lang_text_draw_centered(138, m->legion_id, x_offset, y_offset + 40, CONTENT_WIDTH, FONT_NORMAL_WHITE);
 
     // Number of soldiers
-    int width = text_draw_number(m->num_figures, '@', " ", x_offset, y_offset + 60, FONT_NORMAL_WHITE);
+    int width = text_draw_number(m->num_figures, '@', " ", x_offset, y_offset + 60, FONT_NORMAL_WHITE, 0);
     lang_text_draw(138, 46 - m->figure_type, x_offset + width, y_offset + 60, FONT_NORMAL_WHITE);
 
     // No soldiers
@@ -296,22 +299,24 @@ static void draw_military_info_buttons(int x_offset, int y_offset)
 
     // Go to legion button
     const generic_button *btn = buttons_bottom;
-    image_draw(formation_options_image, x_offset + btn->x + 3, y_offset + 260);
+    image_draw(formation_options_image, x_offset + btn->x + 3, y_offset + 260, COLOR_MASK_NONE, SCALE_NONE);
 
     // Return to fort button
     ++btn;
-    image_draw(formation_options_image + 1 + m->is_at_fort, x_offset + btn->x + 3, y_offset + 260);
+    image_draw(formation_options_image + 1 + m->is_at_fort, x_offset + btn->x + 3, y_offset + 260,
+        COLOR_MASK_NONE, SCALE_NONE);
 
     // Empire service button
     ++btn;
-    image_draw(formation_options_image + 4 - m->empire_service, x_offset + btn->x + 3, y_offset + 260);
+    image_draw(formation_options_image + 4 - m->empire_service, x_offset + btn->x + 3, y_offset + 260,
+        COLOR_MASK_NONE, SCALE_NONE);
 }
 
 static void draw_military_panel_background(int x_offset)
 {
-    graphics_draw_vertical_line(x_offset, Y_OFFSET_PANEL_START,
+    graphics_draw_line(x_offset, x_offset, Y_OFFSET_PANEL_START,
         Y_OFFSET_PANEL_START + MILITARY_PANEL_BLOCKS * BLOCK_SIZE, COLOR_WHITE);
-    graphics_draw_vertical_line(x_offset + SIDEBAR_EXPANDED_WIDTH - 1,
+    graphics_draw_line(x_offset + SIDEBAR_EXPANDED_WIDTH - 1, x_offset + SIDEBAR_EXPANDED_WIDTH - 1,
         Y_OFFSET_PANEL_START, Y_OFFSET_PANEL_START + MILITARY_PANEL_BLOCKS * BLOCK_SIZE, COLOR_SIDEBAR);
     inner_panel_draw(x_offset + 1, Y_OFFSET_PANEL_START + 10,
         SIDEBAR_EXPANDED_WIDTH / BLOCK_SIZE, MILITARY_PANEL_BLOCKS);
@@ -340,10 +345,11 @@ static void draw_legion_buttons(int x_offset, int y_offset)
 
 static void draw_background(int x_offset)
 {
-    image_draw(image_group(GROUP_SIDE_PANEL) + 1, x_offset, 24);
+    image_draw(image_group(GROUP_SIDE_PANEL) + 1, x_offset, 24, COLOR_MASK_NONE, SCALE_NONE);
     image_buttons_draw(x_offset, 24, buttons_title_close, 2);
     lang_text_draw_centered(61, 5, x_offset, 32, 117, FONT_NORMAL_GREEN);
-    widget_minimap_draw(x_offset + 8, 59, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1);
+    widget_minimap_update(0);
+    widget_minimap_draw_decorated(x_offset + 8, 59, MINIMAP_WIDTH, MINIMAP_HEIGHT);
     draw_military_panel_background(x_offset);
     draw_legion_buttons(x_offset, Y_OFFSET_PANEL_START);
     int extra_height = sidebar_extra_draw_background(x_offset, MILITARY_PANEL_HEIGHT,
@@ -380,7 +386,7 @@ static void draw_military_panel_foreground(int x_offset)
 
 static void draw_foreground(int x_offset)
 {
-    widget_minimap_draw(x_offset + 8, 59, MINIMAP_WIDTH, MINIMAP_HEIGHT, 0);
+    widget_minimap_draw_decorated(x_offset + 8, 59, MINIMAP_WIDTH, MINIMAP_HEIGHT);
     image_buttons_draw(x_offset, 24, buttons_title_close, 2);
     lang_text_draw_centered(61, 5, x_offset, 32, 117, FONT_NORMAL_GREEN);
     draw_military_panel_foreground(x_offset);

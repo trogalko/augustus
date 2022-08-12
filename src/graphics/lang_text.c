@@ -44,6 +44,12 @@ void lang_text_draw_ellipsized(int group, int number, int x_offset, int y_offset
 
 int lang_text_draw_amount(int group, int number, int amount, int x_offset, int y_offset, font_t font)
 {
+    return lang_text_draw_amount_colored(group, number, amount, x_offset, y_offset, font, COLOR_MASK_NONE);
+}
+
+int lang_text_draw_amount_colored(int group, int number, int amount, int x_offset, int y_offset,
+    font_t font, color_t color)
+{
     int amount_offset = 1;
     if (amount == 1 || amount == -1) {
         amount_offset = 0;
@@ -51,13 +57,13 @@ int lang_text_draw_amount(int group, int number, int amount, int x_offset, int y
     int desc_offset_x;
     if (amount >= 0) {
         desc_offset_x = text_draw_number(amount, ' ', " ",
-            x_offset, y_offset, font);
+            x_offset, y_offset, font, color);
     } else {
         desc_offset_x = text_draw_number(-amount, '-', " ",
-            x_offset, y_offset, font);
+            x_offset, y_offset, font, color);
     }
-    return desc_offset_x + lang_text_draw(group, number + amount_offset,
-        x_offset + desc_offset_x, y_offset, font);
+    return desc_offset_x + lang_text_draw_colored(group, number + amount_offset,
+        x_offset + desc_offset_x, y_offset, font, color);
 }
 
 int lang_text_draw_year(int year, int x_offset, int y_offset, font_t font)
@@ -66,14 +72,14 @@ int lang_text_draw_year(int year, int x_offset, int y_offset, font_t font)
     if (year >= 0) {
         int use_year_ad = locale_year_before_ad();
         if (use_year_ad) {
-            width += text_draw_number(year, ' ', " ", x_offset + width, y_offset, font);
+            width += text_draw_number(year, ' ', " ", x_offset + width, y_offset, font, 0);
             width += lang_text_draw(20, 1, x_offset + width, y_offset, font);
         } else {
             width += lang_text_draw(20, 1, x_offset + width, y_offset, font);
-            width += text_draw_number(year, ' ', " ", x_offset + width, y_offset, font);
+            width += text_draw_number(year, ' ', " ", x_offset + width, y_offset, font, 0);
         }
     } else {
-        width += text_draw_number(-year, ' ', " ", x_offset + width, y_offset, font);
+        width += text_draw_number(-year, ' ', " ", x_offset + width, y_offset, font, 0);
         width += lang_text_draw(20, 0, x_offset + width, y_offset, font);
     }
     return width;
@@ -102,14 +108,16 @@ void lang_text_draw_month_year_max_width(
         int use_year_ad = locale_year_before_ad();
         if (use_year_ad) {
             width += negative_padding +
-                text_draw_number_colored(year, ' ', " ", x_offset + width, y_offset, font, color);
+                text_draw_number(year, ' ', " ", x_offset + width, y_offset, font, color);
             lang_text_draw_colored(20, 1, x_offset + width, y_offset, font, color);
         } else {
-            width += negative_padding + lang_text_draw_colored(20, 1, x_offset + width, y_offset, font, color);
-            text_draw_number_colored(year, ' ', " ", x_offset + width, y_offset, font, color);
+            width += space_width;
+            width += negative_padding + lang_text_draw_colored(20, 1, x_offset + width, y_offset,
+                font, color);
+            text_draw_number(year, ' ', " ", x_offset + width, y_offset, font, color);
         }
     } else {
-        width += negative_padding + text_draw_number_colored(-year, ' ', " ", x_offset + width, y_offset, font, color);
+        width += negative_padding + text_draw_number(-year, ' ', " ", x_offset + width, y_offset, font, color);
         lang_text_draw_colored(20, 0, x_offset + width, y_offset, font, color);
     }
 }

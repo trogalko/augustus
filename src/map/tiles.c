@@ -1,5 +1,6 @@
 #include "tiles.h"
 
+#include "assets/assets.h"
 #include "city/map.h"
 #include "city/view.h"
 #include "core/direction.h"
@@ -217,6 +218,10 @@ static void clear_garden_image(int x, int y, int grid_offset)
 static void set_garden_image(int x, int y, int grid_offset)
 {
     int image_id;
+    static int alt_garden_image_id;
+    if (!alt_garden_image_id) {
+        alt_garden_image_id = assets_get_image_id("Aesthetics", "Garden_Alt_01");
+    }
     if (map_terrain_is(grid_offset, TERRAIN_GARDEN) && !map_terrain_is(grid_offset, TERRAIN_ELEVATION | TERRAIN_ACCESS_RAMP)) {
         if (!map_image_at(grid_offset)) {
             image_id = image_group(GROUP_TERRAIN_GARDEN);
@@ -240,7 +245,7 @@ static void set_garden_image(int x, int y, int grid_offset)
                             image_id += 2;
                             break;
                         case 1: case 3:
-                            image_id += 3;
+                            image_id = alt_garden_image_id;
                             break;
                     }
                 } else {
@@ -249,7 +254,7 @@ static void set_garden_image(int x, int y, int grid_offset)
                             image_id += 1;
                             break;
                         case 0: case 2:
-                            image_id += 3;
+                            image_id = alt_garden_image_id;
                             break;
                     }
 
@@ -307,8 +312,8 @@ static void set_plaza_image(int x, int y, int grid_offset)
     if (map_terrain_is(grid_offset, TERRAIN_ROAD) &&
         map_property_is_plaza_or_earthquake(grid_offset) &&
         !map_image_at(grid_offset)) {
-        int image_id = image_group(GROUP_TERRAIN_PLAZA);
         if (is_two_tile_square_plaza(grid_offset)) {
+            int image_id = image_group(GROUP_TERRAIN_PLAZA);
             if (map_random_get(grid_offset) & 1) {
                 image_id += 7;
             } else {
@@ -317,11 +322,12 @@ static void set_plaza_image(int x, int y, int grid_offset)
             map_building_tiles_add(0, x, y, 2, image_id, TERRAIN_ROAD);
         } else {
             // single tile plaza
-            switch ((x & 1) + (y & 1)) {
-                case 2: image_id += 1; break;
-                case 1: image_id += 2; break;
+            static int image_id;
+            if (!image_id) {
+                image_id = assets_get_image_id("Aesthetics", "Plazas");
             }
-            map_image_set(grid_offset, image_id);
+            int image_offset = (x + y) % 9;
+            map_image_set(grid_offset, image_id + image_offset);
         }
     }
 }
@@ -1181,6 +1187,7 @@ void map_tiles_add_entry_exit_flags(void)
             }
         }
         int grid_offset_flag = city_map_set_entry_flag(x_tile, y_tile);
+        map_terrain_remove(grid_offset_flag, TERRAIN_MEADOW);
         map_terrain_add(grid_offset_flag, TERRAIN_ROCK);
         int orientation = (city_view_orientation() + entry_orientation) % 8;
         map_image_set(grid_offset_flag, image_group(GROUP_TERRAIN_ENTRY_EXIT_FLAGS) + orientation / 2);
@@ -1195,6 +1202,7 @@ void map_tiles_add_entry_exit_flags(void)
             }
         }
         int grid_offset_flag = city_map_set_exit_flag(x_tile, y_tile);
+        map_terrain_remove(grid_offset_flag, TERRAIN_MEADOW);
         map_terrain_add(grid_offset_flag, TERRAIN_ROCK);
         int orientation = (city_view_orientation() + exit_orientation) % 8;
         map_image_set(grid_offset_flag, image_group(GROUP_TERRAIN_ENTRY_EXIT_FLAGS) + 4 + orientation / 2);

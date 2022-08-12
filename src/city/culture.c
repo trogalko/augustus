@@ -10,7 +10,7 @@
 #include "city/population.h"
 #include "core/calc.h"
 
-#define SHRINE_COVERAGE 20
+#define SHRINE_COVERAGE 10
 #define SMALL_TEMPLE_COVERAGE 750
 #define LARGE_TEMPLE_COVERAGE 3000
 #define ORACLE_COVERAGE 500
@@ -276,7 +276,7 @@ int city_culture_get_library_person_coverage(void)
 
 int city_culture_get_academy_person_coverage(void)
 {
-    return ACADEMY_COVERAGE * building_count_active(BUILDING_ACADEMY);
+    return ACADEMY_COVERAGE * building_count_active(BUILDING_ACADEMY) + ACADEMY_UPGRADE_BONUS_COVERAGE * building_count_upgraded(BUILDING_ACADEMY);
 }
 
 int city_culture_get_tavern_person_coverage(void)

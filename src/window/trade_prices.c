@@ -15,10 +15,35 @@
 #include "input/input.h"
 #include "window/advisors.h"
 
+static struct {
+    int x;
+    int y;
+    int width;
+    int height;
+    int full_screen;
+} shade;
+
+static void init(int shade_x, int shade_y, int shade_width, int shade_height)
+{
+    shade.full_screen = shade_x == 0 && shade_y == 0 && shade_width == screen_width() && shade_height == screen_height();
+    if (!shade.full_screen) {
+        shade.x = shade_x;
+        shade.y = shade_y;
+        shade.width = shade_width;
+        shade.height = shade_height;
+    }
+}
 
 static void draw_background(void)
 {
     window_draw_underlying_window();
+
+    if (shade.full_screen) {
+        graphics_shade_rect(0, 0, screen_width(), screen_height(), 8);
+    } else {
+        graphics_shade_rect(shade.x + screen_dialog_offset_x(), shade.y + screen_dialog_offset_y(),
+            shade.width, shade.height, 8);
+    }
 
     graphics_in_dialog();
 
@@ -52,7 +77,6 @@ static void draw_background(void)
         price_shift = 60;
     }
 
-    graphics_shade_rect(17, 53, 622, 334, 0);
     outer_panel_draw(16, 144, 38, window_height);
 
     lang_text_draw(54, 21, 26, 153, FONT_LARGE_BLACK);
@@ -68,30 +92,49 @@ static void draw_background(void)
 
     for (int i = 1; i < 16; i++) {
         int image_offset = i + resource_image_offset(i, RESOURCE_IMAGE_ICON);
-        image_draw(image_group(GROUP_RESOURCE_ICONS) + image_offset, icon_shift + 30 * i, 194);
+        image_draw(image_group(GROUP_RESOURCE_ICONS) + image_offset, icon_shift + 30 * i, 194,
+            COLOR_MASK_NONE, SCALE_NONE);
 
         if (!four_line || no_policy) {
             if (no_policy) {
-                text_draw_number_centered(trade_price_buy(i, 0), price_shift + 30 * i, line_buy_position, 30, FONT_SMALL_PLAIN);
-                text_draw_number_centered(trade_price_sell(i, 0), price_shift + 30 * i, line_sell_position, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_buy(i, 0),
+                    price_shift + 30 * i, line_buy_position, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_sell(i, 0),
+                    price_shift + 30 * i, line_sell_position, 30, FONT_SMALL_PLAIN);
             } else {
-                text_draw_number_centered_colored(trade_price_buy(i, 1), price_shift + 30 * i, line_buy_position, 30, FONT_SMALL_PLAIN, land_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
-                text_draw_number_centered_colored(trade_price_sell(i, 1), price_shift + 30 * i, line_sell_position, 30, FONT_SMALL_PLAIN, land_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
+                text_draw_number_centered_colored(trade_price_buy(i, 1),
+                    price_shift + 30 * i, line_buy_position, 30, FONT_SMALL_PLAIN,
+                    land_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
+                text_draw_number_centered_colored(trade_price_sell(i, 1),
+                    price_shift + 30 * i, line_sell_position, 30, FONT_SMALL_PLAIN,
+                    land_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
             }
         } else {
             if (has_land_trade_policy) {
-                text_draw_number_centered_colored(trade_price_buy(i, 1), price_shift + 30 * i, line_buy_position + number_margin, 30, FONT_SMALL_PLAIN, land_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
-                text_draw_number_centered_colored(trade_price_sell(i, 1), price_shift + 30 * i, line_sell_position + number_margin, 30, FONT_SMALL_PLAIN, land_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
+                text_draw_number_centered_colored(trade_price_buy(i, 1),
+                    price_shift + 30 * i, line_buy_position + number_margin, 30, FONT_SMALL_PLAIN,
+                    land_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
+                text_draw_number_centered_colored(trade_price_sell(i, 1),
+                    price_shift + 30 * i, line_sell_position + number_margin, 30, FONT_SMALL_PLAIN,
+                    land_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
             } else {
-                text_draw_number_centered(trade_price_buy(i, 1), price_shift + 30 * i, line_buy_position + number_margin, 30, FONT_SMALL_PLAIN);
-                text_draw_number_centered(trade_price_sell(i, 1), price_shift + 30 * i, line_sell_position + number_margin, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_buy(i, 1),
+                    price_shift + 30 * i, line_buy_position + number_margin, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_sell(i, 1),
+                    price_shift + 30 * i, line_sell_position + number_margin, 30, FONT_SMALL_PLAIN);
             }
             if (has_sea_trade_policy) {
-                text_draw_number_centered_colored(trade_price_buy(i, 0), price_shift + 30 * i, line_buy_position + 2 * number_margin, 30, FONT_SMALL_PLAIN, sea_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
-                text_draw_number_centered_colored(trade_price_sell(i, 0), price_shift + 30 * i, line_sell_position + 2 * number_margin, 30, FONT_SMALL_PLAIN, sea_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
+                text_draw_number_centered_colored(trade_price_buy(i, 0),
+                    price_shift + 30 * i, line_buy_position + 2 * number_margin, 30, FONT_SMALL_PLAIN,
+                    sea_policy == TRADE_POLICY_1 ? COLOR_MASK_PURPLE : COLOR_MASK_DARK_GREEN);
+                text_draw_number_centered_colored(trade_price_sell(i, 0),
+                    price_shift + 30 * i, line_sell_position + 2 * number_margin, 30, FONT_SMALL_PLAIN,
+                    sea_policy == TRADE_POLICY_1 ? COLOR_MASK_DARK_GREEN : COLOR_MASK_PURPLE);
             } else {
-                text_draw_number_centered(trade_price_buy(i, 0), price_shift + 30 * i, line_buy_position + 2 * number_margin, 30, FONT_SMALL_PLAIN);
-                text_draw_number_centered(trade_price_sell(i, 0), price_shift + 30 * i, line_sell_position + 2 * number_margin, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_buy(i, 0),
+                    price_shift + 30 * i, line_buy_position + 2 * number_margin, 30, FONT_SMALL_PLAIN);
+                text_draw_number_centered(trade_price_sell(i, 0),
+                    price_shift + 30 * i, line_sell_position + 2 * number_margin, 30, FONT_SMALL_PLAIN);
             }
         }
     }
@@ -102,16 +145,16 @@ static void draw_background(void)
 
         int image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE) + 1;
 
-        image_draw(image_id, 60, y_pos_buy);
-        image_draw(image_id, 60, y_pos_sell);
+        image_draw(image_id, 60, y_pos_buy, COLOR_MASK_NONE, SCALE_NONE);
+        image_draw(image_id, 60, y_pos_sell, COLOR_MASK_NONE, SCALE_NONE);
 
         image_id = image_group(GROUP_EMPIRE_TRADE_ROUTE_TYPE);
         if (!same_policy) {
             y_pos_buy += number_margin;
             y_pos_sell += number_margin;
         }
-        image_draw(image_id, 60, y_pos_buy);
-        image_draw(image_id, 60, y_pos_sell);
+        image_draw(image_id, 60, y_pos_buy, COLOR_MASK_NONE, SCALE_NONE);
+        image_draw(image_id, 60, y_pos_sell, COLOR_MASK_NONE, SCALE_NONE);
     }
 
     lang_text_draw_centered(13, 1, 16, button_position, 608, FONT_NORMAL_BLACK);
@@ -122,7 +165,7 @@ static void draw_background(void)
 static void handle_input(const mouse *m, const hotkeys *h)
 {
     if (input_go_back_requested(m, h)) {
-        window_advisors_show();
+        window_go_back();
     }
 }
 
@@ -152,8 +195,9 @@ static void get_tooltip(tooltip_context *c)
     c->text_id = 131 + resource;
 }
 
-void window_trade_prices_show(void)
+void window_trade_prices_show(int shade_x, int shade_y, int shade_width, int shade_height)
 {
+    init(shade_x, shade_y, shade_width, shade_height);
     window_type window = {
         WINDOW_TRADE_PRICES,
         draw_background,

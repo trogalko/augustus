@@ -5,6 +5,7 @@
 #include "building/industry.h"
 #include "building/granary.h"
 #include "building/menu.h"
+#include "building/model.h"
 #include "building/monument.h"
 #include "building/properties.h"
 #include "building/rotation.h"
@@ -45,6 +46,22 @@ static struct {
 building *building_get(int id)
 {
     return array_item(data.buildings, id);
+}
+
+void building_get_from_buffer(buffer *buf, int id, building *b, int includes_building_size, int save_version,
+    int buffer_offset)
+{
+    buffer_set(buf, 0);
+    int building_buf_size = BUILDING_STATE_ORIGINAL_BUFFER_SIZE;
+    int buf_skip = 0;
+
+    if (includes_building_size) {
+        building_buf_size = buffer_read_i32(buf);
+        buf_skip = 4;
+    }
+    buf_skip += buffer_offset;
+    buffer_set(buf, building_buf_size * id + buf_skip);
+    building_state_load_from_buffer(buf, b, building_buf_size, save_version);
 }
 
 int building_count(void)
@@ -149,7 +166,7 @@ building *building_create(building_type type, int x, int y)
     building *b;
     array_new_item(data.buildings, 1, b);
     if (!b) {
-        city_warning_show(WARNING_DATA_LIMIT_REACHED);
+        city_warning_show(WARNING_DATA_LIMIT_REACHED, NEW_WARNING_SLOT);
         return array_first(data.buildings);
     }
 
@@ -282,6 +299,11 @@ building *building_create(building_type type, int x, int y)
     b->tourism_income_this_year = 0;
     b->upgrade_level = 0;
     b->variant = 0;
+    b->sickness_level = 0;
+    b->sickness_duration = 0;
+    b->sickness_doctor_cure = 0;
+    b->fumigation_frame = 0;
+    b->fumigation_direction = 0;
     return b;
 }
 
@@ -457,7 +479,7 @@ int building_is_statue_garden_temple(building_type type)
         (type >= BUILDING_SMALL_POND && type <= BUILDING_PANTHEON) ||
         (type == BUILDING_GARDENS) || (type == BUILDING_GARDEN_PATH) ||
         (type >= BUILDING_HORSE_STATUE && type <= BUILDING_LARGE_MAUSOLEUM) ||
-        type == BUILDING_GARDEN_WALL
+        type == BUILDING_GARDEN_WALL || type == BUILDING_GLADIATOR_STATUE
         );
 }
 
@@ -580,6 +602,17 @@ int building_get_levy(const building *b)
 int building_get_tourism(const building *b)
 {
     return b->is_tourism_venue;
+}
+
+int building_get_laborers(building_type type)
+{
+    const model_building *model = model_get_building(type);
+    int workers = model->laborers;
+    // Neptune GT bonus
+    if (type == BUILDING_FOUNTAIN && building_monument_working(BUILDING_GRAND_TEMPLE_NEPTUNE)) {
+        workers /= 2;
+    }
+    return workers;
 }
 
 void building_totals_add_corrupted_house(int unfixable)

@@ -5,11 +5,14 @@
 #include "building/storage.h"
 #include "building/warehouse.h"
 #include "city/finance.h"
+#include "city/map.h"
 #include "city/message.h"
 #include "city/resource.h"
 #include "core/calc.h"
 #include "core/config.h"
 #include "empire/trade_prices.h"
+#include "figure/figure.h"
+#include "map/road_access.h"
 #include "map/routing_terrain.h"
 #include "scenario/property.h"
 #include "sound/effect.h"
@@ -43,10 +46,11 @@ int building_granary_is_accepting(int resource, building *b)
 {
     const building_storage *s = building_storage_get(b->storage_id);
     int amount = get_amount(b, resource);
-    if ((s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING) ||
+    if (!b->has_plague &&
+        ((s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING_3QUARTERS && amount < THREEQUARTERS_GRANARY) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING_HALF && amount < HALF_GRANARY) ||
-        (s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING_QUARTER && amount < QUARTER_GRANARY)) {
+        (s->resource_state[resource] == BUILDING_STORAGE_STATE_ACCEPTING_QUARTER && amount < QUARTER_GRANARY))) {
         return 1;
     } else {
         return 0;
@@ -57,10 +61,11 @@ int building_granary_is_getting(int resource, building *b)
 {
     const building_storage *s = building_storage_get(b->storage_id);
     int amount = get_amount(b, resource);
-    if ((s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING) ||
+    if (!b->has_plague &&
+        ((s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_3QUARTERS && amount < THREEQUARTERS_GRANARY) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_HALF && amount < HALF_GRANARY) ||
-        (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_QUARTER && amount < QUARTER_GRANARY)) {
+        (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_QUARTER && amount < QUARTER_GRANARY))) {
         return 1;
     } else {
         return 0;
@@ -70,15 +75,17 @@ int building_granary_is_getting(int resource, building *b)
 int building_granary_is_gettable(int resource, building *b)
 {
     const building_storage *s = building_storage_get(b->storage_id);
-    if ((s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING) ||
+    if (!b->has_plague &&
+        ((s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_3QUARTERS) ||
         (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_HALF) ||
-        (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_QUARTER)) {
+        (s->resource_state[resource] == BUILDING_STORAGE_STATE_GETTING_QUARTER))) {
         return 1;
     } else {
         return 0;
     }
 }
+
 int building_granary_is_not_accepting(int resource, building *b)
 {
     return !((building_granary_is_accepting(resource, b) || building_granary_is_getting(resource, b)));
@@ -150,6 +157,10 @@ int building_granary_remove_resource(building *granary, int resource, int amount
     if (amount <= 0) {
         return 0;
     }
+    if (granary->has_plague) {
+        return 0;
+    }
+
     int removed;
     if (granary->data.granary.resource_stored[resource] >= amount) {
         removed = amount;
@@ -179,6 +190,75 @@ int building_granaries_remove_resource(int resource, int amount)
         }
     }
     return amount;
+}
+
+int building_granaries_send_resources_to_rome(int resource, int amount)
+{
+    // first go for non-getting granaries
+    for (building *b = building_first_of_type(BUILDING_GRANARY); b && amount; b = b->next_of_type) {
+        if (b->state == BUILDING_STATE_IN_USE) {
+            if (!building_granary_is_getting(resource, b)) {
+                int remaining = building_granary_remove_resource(b, resource, amount);
+                if (remaining < amount) {
+                    int loads = amount - remaining;
+                    amount = remaining;
+                    map_point road;
+                    if (map_has_road_access(b->x, b->y, b->size, &road)) {
+                        figure *f = figure_create(FIGURE_CART_PUSHER, road.x, road.y, DIR_4_BOTTOM);
+                        f->action_state = FIGURE_ACTION_234_CARTPUSHER_GOING_TO_ROME_CREATED;
+                        f->resource_id = resource;
+                        f->loads_sold_or_carrying = loads / UNITS_PER_LOAD;
+                        f->building_id = b->id;
+                    }
+                }
+            }
+        }
+    }
+    // if that doesn't work, take it anyway
+    for (building *b = building_first_of_type(BUILDING_GRANARY); b && amount; b = b->next_of_type) {
+        if (b->state == BUILDING_STATE_IN_USE) {
+            int remaining = building_granary_remove_resource(b, resource, amount);
+            if (remaining < amount) {
+                int loads = amount - remaining;
+                amount = remaining;
+                map_point road;
+                if (map_has_road_access(b->x, b->y, b->size, &road)) {
+                    figure *f = figure_create(FIGURE_CART_PUSHER, road.x, road.y, DIR_4_BOTTOM);
+                    f->action_state = FIGURE_ACTION_234_CARTPUSHER_GOING_TO_ROME_CREATED;
+                    f->resource_id = resource;
+                    f->loads_sold_or_carrying = loads / UNITS_PER_LOAD;
+                    f->building_id = b->id;
+                }
+            }
+        }
+    }
+    return amount;
+}
+
+static int maximum_receptible_amount(int resource, building *b)
+{
+    if (b->has_plague) {
+        return 0;
+    }
+    int stored_amount = b->data.granary.resource_stored[resource];
+    int max_amount;
+    switch (building_storage_get(b->storage_id)->resource_state[resource]) {
+        case BUILDING_STORAGE_STATE_GETTING:
+            max_amount = FULL_GRANARY;
+            break;
+        case BUILDING_STORAGE_STATE_GETTING_3QUARTERS:
+            max_amount = THREEQUARTERS_GRANARY;
+            break;
+        case BUILDING_STORAGE_STATE_GETTING_HALF:
+            max_amount = HALF_GRANARY;
+            break;
+        case BUILDING_STORAGE_STATE_GETTING_QUARTER:
+            max_amount = QUARTER_GRANARY;
+            break;
+        default:
+            return 0;
+    }
+    return (max_amount > stored_amount) ? (max_amount - stored_amount) : 0;
 }
 
 int building_granary_remove_for_getting_deliveryman(building *src, building *dst, int *resource)
@@ -221,6 +301,10 @@ int building_granary_remove_for_getting_deliveryman(building *src, building *dst
     }
     if (max_amount > dst->data.granary.resource_stored[RESOURCE_NONE]) {
         max_amount = dst->data.granary.resource_stored[RESOURCE_NONE];
+    }
+    const int receptible_amount = maximum_receptible_amount(max_resource, dst);
+    if (max_amount > receptible_amount) {
+        max_amount = receptible_amount;
     }
     building_granary_remove_resource(src, max_resource, max_amount);
     *resource = max_resource;
@@ -277,7 +361,8 @@ void building_granaries_calculate_stocks(void)
     non_getting_granaries.total_storage_meat = 0;
 
     for (building *b = building_first_of_type(BUILDING_GRANARY); b; b = b->next_of_type) {
-        if (b->state != BUILDING_STATE_IN_USE || !b->has_road_access || b->distance_from_entry <= 0) {
+        if (b->state != BUILDING_STATE_IN_USE || !b->has_road_access ||
+            b->distance_from_entry <= 0 || b->has_plague) {
             continue;
         }
         int total_non_getting = 0;
@@ -309,7 +394,7 @@ void building_granaries_calculate_stocks(void)
 int building_granary_accepts_storage(building *b, int resource, int *understaffed)
 {
     if (b->state != BUILDING_STATE_IN_USE || b->type != BUILDING_GRANARY ||
-        !b->has_road_access || b->distance_from_entry <= 0) {
+        !b->has_road_access || b->distance_from_entry <= 0 || b->has_plague) {
         return 0;
     }
     int pct_workers = calc_percentage(b->num_workers, model_get_building(b->type)->laborers);
@@ -372,13 +457,14 @@ int building_getting_granary_for_storing(int x, int y, int resource, int road_ne
     if (!resource_is_food(resource)) {
         return 0;
     }
+    
     if (city_resource_is_stockpiled(resource)) {
         return 0;
     }
     int min_dist = INFINITE;
     int min_building_id = 0;
     for (building *b = building_first_of_type(BUILDING_GRANARY); b; b = b->next_of_type) {
-        if (b->state != BUILDING_STATE_IN_USE) {
+        if (b->state != BUILDING_STATE_IN_USE || b->has_plague) {
             continue;
         }
         if (!b->has_road_access || b->distance_from_entry <= 0 || b->road_network_id != road_network_id) {
@@ -470,7 +556,7 @@ void building_granary_bless(void)
     int min_stored = INFINITE;
     building *min_building = 0;
     for (building *b = building_first_of_type(BUILDING_GRANARY); b; b = b->next_of_type) {
-        if (b->state != BUILDING_STATE_IN_USE) {
+        if (b->state != BUILDING_STATE_IN_USE || b->has_plague) {
             continue;
         }
         int total_stored = 0;
@@ -503,7 +589,7 @@ void building_granary_warehouse_curse(int big)
     int max_stored = 0;
     building *max_building = 0;
     for (building *b = building_first_of_type(BUILDING_GRANARY); b; b = b->next_of_type) {
-        if (b->state != BUILDING_STATE_IN_USE) {
+        if (b->state != BUILDING_STATE_IN_USE || b->has_plague) {
             continue;
         }
         int total_stored = 0;
@@ -517,7 +603,7 @@ void building_granary_warehouse_curse(int big)
         }
     }
     for (building *b = building_first_of_type(BUILDING_WAREHOUSE); b; b = b->next_of_type) {
-        if (b->state != BUILDING_STATE_IN_USE) {
+        if (b->state != BUILDING_STATE_IN_USE || b->has_plague) {
             continue;
         }
         int total_stored = 0;

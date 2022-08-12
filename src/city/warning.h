@@ -68,18 +68,23 @@ typedef enum {
     WARNING_THEFT = 74,
     WARNING_WOLF_NEARBY = 75,
     WARNING_BET_VICTORY = 76,
-    WARNING_BET_DEFEAT = 77
+    WARNING_BET_DEFEAT = 77,
+    WARNING_DATA_COPY_SUCCESS = 78,
+    WARNING_DATA_COPY_NOT_SUPPORTED = 79,
+    WARNING_DATA_PASTE_SUCCESS = 80,
+    WARNING_DATA_PASTE_FAILURE = 81,
 } warning_type;
 
-void city_warning_show(warning_type type);
+#define NEW_WARNING_SLOT 0
+
+int city_warning_show(warning_type type, int id);
+int city_warning_show_custom(const uint8_t *text, int id);
 
 int city_has_warnings(void);
 
-const uint8_t *city_warning_get(int id);
+const uint8_t *city_warning_get(int position);
 
 void city_warning_clear_all(void);
 void city_warning_clear_outdated(void);
-
-void city_warning_show_console(uint8_t *warning_text);
 
 #endif // CITY_WARNING_H

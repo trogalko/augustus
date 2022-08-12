@@ -40,7 +40,7 @@ static const building_type MENU_BUILDING_TYPE[BUILD_MENU_MAX][BUILD_MENU_ITEM_MA
     {BUILDING_PINE_TREE, BUILDING_FIR_TREE, BUILDING_OAK_TREE, BUILDING_ELM_TREE, BUILDING_FIG_TREE, BUILDING_PLUM_TREE, BUILDING_PALM_TREE, BUILDING_DATE_TREE, 0},
     {BUILDING_GARDEN_PATH, BUILDING_PINE_PATH , BUILDING_FIR_PATH, BUILDING_OAK_PATH, BUILDING_ELM_PATH, BUILDING_FIG_PATH, BUILDING_PLUM_PATH, BUILDING_PALM_PATH, BUILDING_DATE_PATH, 0},
     {BUILDING_PANTHEON, BUILDING_GRAND_TEMPLE_CERES, BUILDING_GRAND_TEMPLE_NEPTUNE, BUILDING_GRAND_TEMPLE_MERCURY, BUILDING_GRAND_TEMPLE_MARS, BUILDING_GRAND_TEMPLE_VENUS, 0},
-    {BUILDING_SMALL_STATUE, BUILDING_SMALL_STATUE_ALT, BUILDING_SMALL_STATUE_ALT_B, BUILDING_MEDIUM_STATUE, BUILDING_LEGION_STATUE, BUILDING_LARGE_STATUE, BUILDING_HORSE_STATUE, 0},
+    {BUILDING_SMALL_STATUE, BUILDING_SMALL_STATUE_ALT, BUILDING_SMALL_STATUE_ALT_B, BUILDING_GLADIATOR_STATUE, BUILDING_MEDIUM_STATUE, BUILDING_LEGION_STATUE, BUILDING_LARGE_STATUE, BUILDING_HORSE_STATUE, 0},
     {BUILDING_GOVERNORS_HOUSE, BUILDING_GOVERNORS_VILLA, BUILDING_GOVERNORS_PALACE, 0}
 };
 static int menu_enabled[BUILD_MENU_MAX][BUILD_MENU_ITEM_MAX];
@@ -182,6 +182,17 @@ static void enable_normal(int *enabled, building_type type)
     enable_if_allowed(enabled, type, BUILDING_LARGE_MAUSOLEUM);
     enable_if_allowed(enabled, type, BUILDING_CARAVANSERAI);
     enable_if_allowed(enabled, type, BUILDING_PALISADE);
+    enable_if_allowed(enabled, type, BUILDING_GLADIATOR_STATUE);
+    enable_if_allowed(enabled, type, BUILDING_HEDGE_DARK);
+    enable_if_allowed(enabled, type, BUILDING_HEDGE_LIGHT);
+    enable_if_allowed(enabled, type, BUILDING_DECORATIVE_COLUMN);
+    enable_if_allowed(enabled, type, BUILDING_COLONNADE);
+    enable_if_allowed(enabled, type, BUILDING_PAVILION_BLUE);
+    enable_if_allowed(enabled, type, BUILDING_LARGE_POND);
+    enable_if_allowed(enabled, type, BUILDING_SMALL_POND);
+    enable_if_allowed(enabled, type, BUILDING_ROOFED_GARDEN_WALL);
+    enable_if_allowed(enabled, type, BUILDING_GARDEN_WALL);
+
 
     if (type == BUILDING_TRIUMPHAL_ARCH) {
         if (city_buildings_triumphal_arch_available()) {
@@ -218,6 +229,12 @@ static void enable_tutorial1_after_collapse(int *enabled, building_type type)
     enable_if_allowed(enabled, type, BUILDING_ENGINEERS_POST);
     enable_if_allowed(enabled, type, BUILDING_SENATE_UPGRADED);
     enable_if_allowed(enabled, type, BUILDING_ROADBLOCK);
+}
+
+static void enable_tutorial1_after_senate(int *enabled, building_type type)
+{
+    enable_tutorial1_after_collapse(enabled, type);
+    enable_if_allowed(enabled, type, BUILDING_MENU_SMALL_TEMPLES);
 }
 
 static void enable_tutorial2_start(int *enabled, building_type type)
@@ -291,8 +308,8 @@ void building_menu_update(void)
         for (int item = 0; item < BUILD_MENU_ITEM_MAX; item++) {
             int building_type = MENU_BUILDING_TYPE[sub][item];
             int *menu_item = &menu_enabled[sub][item];
-            // first 12 items always disabled
-            if (sub < 12) {
+            // first 12 items and parks always disabled at the start
+            if ((sub < 12) || (sub == 18)) {
                 *menu_item = 0;
             } else {
                 *menu_item = 1;
@@ -307,6 +324,8 @@ void building_menu_update(void)
                 case TUT1_BUILD_AFTER_COLLAPSE:
                     enable_tutorial1_after_collapse(menu_item, building_type);
                     break;
+                case TUT1_BUILD_AFTER_SENATE:
+                    enable_tutorial1_after_senate(menu_item, building_type);
                 case TUT2_BUILD_START:
                     enable_tutorial2_start(menu_item, building_type);
                     break;

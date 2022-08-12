@@ -15,6 +15,7 @@
 #include "map/building_tiles.h"
 #include "map/data.h"
 #include "map/grid.h"
+#include "map/natives.h"
 #include "map/property.h"
 #include "map/routing_terrain.h"
 #include "map/terrain.h"
@@ -73,6 +74,8 @@ void map_orientation_change(int counter_clockwise)
     map_orientation_update_buildings();
     map_bridge_update_after_rotate(counter_clockwise);
     map_routing_update_walls();
+
+    map_natives_check_land(0);
 
     figure_tower_sentry_reroute();
     figure_hippodrome_horse_reroute();
@@ -246,7 +249,7 @@ void map_orientation_update_buildings(void)
 {
     for (int i = 1; i < building_count(); i++) {
         building *b = building_get(i);
-        if (b->state == BUILDING_STATE_UNUSED) {
+        if (b->state == BUILDING_STATE_UNUSED || b->state == BUILDING_STATE_DELETED_BY_GAME) {
             continue;
         }
         switch (b->type) {
@@ -272,9 +275,15 @@ void map_orientation_update_buildings(void)
             case BUILDING_SMALL_STATUE:
             case BUILDING_SMALL_STATUE_ALT:
             case BUILDING_SMALL_STATUE_ALT_B:
+            case BUILDING_GLADIATOR_STATUE:
+            case BUILDING_MEDIUM_STATUE:
             case BUILDING_LEGION_STATUE:
             case BUILDING_PAVILION_BLUE:
+            case BUILDING_HORSE_STATUE:
+            case BUILDING_SMALL_MAUSOLEUM:
+            case BUILDING_LARGE_MAUSOLEUM:
             case BUILDING_DECORATIVE_COLUMN:
+            case BUILDING_WATCHTOWER:
                 map_building_tiles_add(i, b->x, b->y, b->size, building_image_get(b), TERRAIN_BUILDING);
                 break;
             case BUILDING_ROADBLOCK:

@@ -175,8 +175,9 @@ void window_building_draw_roadblock_orders_foreground(building_info_context *c)
     data.building_id = b->id;
 
     for (int i = 0; i < size_of_orders_permission_buttons; i++) {
-        image_draw(image_group(ids[i * 2]) + 4, c->x_offset + 32, y_offset + 46 + 32 * i);
-        image_draw(image_group(ids[i * 2 + 1]) + 4, c->x_offset + 64, y_offset + 46 + 32 * i);
+        image_draw(image_group(ids[i * 2]) + 4, c->x_offset + 32, y_offset + 46 + 32 * i, COLOR_MASK_NONE, SCALE_NONE);
+        image_draw(image_group(ids[i * 2 + 1]) + 4, c->x_offset + 64, y_offset + 46 + 32 * i,
+            COLOR_MASK_NONE, SCALE_NONE);
        // lang_text_draw(23, resource, c->x_offset + 72, y_offset + 50 + 22 * i, FONT_NORMAL_WHITE);
         button_border_draw(c->x_offset + 180, y_offset + 50 + 32 * i, 210, 22, data.figure_focus_button_id == i + 1);
         int state = building_roadblock_get_permission(i + 1, b);
@@ -204,6 +205,15 @@ void window_building_draw_garden_gate(building_info_context *c)
     outer_panel_draw(c->x_offset, c->y_offset, c->width_blocks, c->height_blocks);
     text_draw_centered(translation_for(TR_BUILDING_GARDEN_WALL_GATE), c->x_offset, c->y_offset + 10, 16 * c->width_blocks, FONT_LARGE_BLACK, 0);
     window_building_draw_description_from_tr_string_at(c, TR_BUILDING_GARDEN_WALL_GATE_DESC, 96);
+}
+
+void window_building_draw_palisade_gate(building_info_context *c)
+{
+    c->help_id = 0;
+    window_building_play_sound(c, "wavs/gatehouse.wav");
+    outer_panel_draw(c->x_offset, c->y_offset, c->width_blocks, c->height_blocks);
+    text_draw_centered(translation_for(TR_BUILDING_PALISADE_GATE), c->x_offset, c->y_offset + 10, 16 * c->width_blocks, FONT_LARGE_BLACK, 0);
+    window_building_draw_description_from_tr_string_at(c, TR_BUILDING_PALISADE_GATE_DESC, 96);
 }
 
 void window_building_draw_garden_gate_foreground(building_info_context *c)

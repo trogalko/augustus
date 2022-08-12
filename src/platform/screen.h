@@ -1,8 +1,6 @@
 #ifndef PLATFORM_SCREEN_H
 #define PLATFORM_SCREEN_H
 
-#include "graphics/color.h"
-
 int platform_screen_create(const char *title, int dispay_scale_percentage);
 void platform_screen_destroy(void);
 
@@ -18,10 +16,8 @@ void platform_screen_center_window(void);
 void platform_screen_recreate_texture(void);
 #endif
 
-void platform_screen_clear(void);
-void platform_screen_update(void);
-void platform_screen_render(void);
+int platform_screen_get_scale(void);
 
-void platform_screen_generate_mouse_cursor_texture(int cursor_id, int scale, const color_t *cursor_colors);
+void platform_screen_show_error_message_box(const char *title, const char *message);
 
 #endif // PLATFORM_SCREEN_H

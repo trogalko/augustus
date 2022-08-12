@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-sudo set -e
+set -e
 
 function get_sdl_lib_url {
   local MODULE=$1
@@ -114,7 +114,7 @@ function install_sdl_android {
 mkdir -p deps
 if [ "$BUILD_TARGET" == "appimage" ]
 then
-  sudo apt-get update && sudo apt-get -y install libgl1-mesa-dev libsdl2-dev libsdl2-mixer-dev
+  sudo add-apt-repository universe && sudo add-apt-repository ppa:savoury1/multimedia && sudo apt-get update && sudo apt-get -y install libgl1-mesa-dev libsdl2-dev libsdl2-mixer-dev libfuse2
 elif [ ! -z "$SDL_VERSION" ] && [ ! -z "$SDL_MIXER_VERSION" ]
 then
   if [ "$BUILD_TARGET" == "mac" ]
@@ -144,7 +144,7 @@ then
         --disable-feature-report \
         --disable-equalizer \
         --disable-buffer"
-      SDL_CONFIGURE_OPTIONS="--host=wasm32-unknown-emscripten --disable-assembly --disable-threads --disable-cpuinfo"
+      SDL_CONFIGURE_OPTIONS="--host=wasm32-unknown-emscripten --disable-assembly --disable-cpuinfo"
       SDL_MIXER_CONFIGURE_OPTIONS="--host=wasm32-unknown-emscripten --enable-music-mp3-mpg123-shared=no"
     fi
     install_sdl_lib "SDL2" $SDL_VERSION "$SDL_CONFIGURE_OPTIONS"

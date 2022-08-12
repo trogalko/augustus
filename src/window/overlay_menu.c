@@ -54,14 +54,14 @@ static generic_button submenu_buttons[] = {
 
 static const int MENU_ID_TO_OVERLAY[OVERLAY_BUTTONS] = { OVERLAY_NONE, OVERLAY_WATER, 1, 3, 5, 6, 7, OVERLAY_RELIGION, OVERLAY_ROADS, OVERLAY_LEVY };
 static const int MENU_ID_TO_SUBMENU_ID[OVERLAY_BUTTONS] = { 0, 0, 1, 2, 3, 4, 5, 0, 0 };
-static const int ADDITIONAL_OVERLAY_TR[] = { TR_OVERLAY_ROADS, TR_OVERLAY_LEVY, TR_OVERLAY_TAVERN, TR_OVERLAY_ARENA_COL, TR_OVERLAY_SENTIMENT, TR_OVERLAY_MOTHBALL, TR_OVERLAY_ENEMY, TR_OVERLAY_WAREHOUSES };
+static const int ADDITIONAL_OVERLAY_TR[] = { TR_OVERLAY_ROADS, TR_OVERLAY_LEVY, TR_OVERLAY_TAVERN, TR_OVERLAY_ARENA_COL, TR_OVERLAY_SENTIMENT, TR_OVERLAY_MOTHBALL, TR_OVERLAY_ENEMY, TR_OVERLAY_WAREHOUSES, TR_OVERLAY_SICKNESS };
 
 static const int SUBMENU_ID_TO_OVERLAY[6][OVERLAY_BUTTONS] = {
     {0},
     {OVERLAY_FIRE, OVERLAY_DAMAGE, OVERLAY_CRIME, OVERLAY_NATIVE, OVERLAY_PROBLEMS, OVERLAY_ENEMY, 0},
     {OVERLAY_ENTERTAINMENT, OVERLAY_TAVERN, OVERLAY_THEATER, OVERLAY_AMPHITHEATER, OVERLAY_ARENA, OVERLAY_COLOSSEUM, OVERLAY_HIPPODROME, 0},
     {OVERLAY_EDUCATION, OVERLAY_SCHOOL, OVERLAY_LIBRARY, OVERLAY_ACADEMY, 0},
-    {OVERLAY_BARBER, OVERLAY_BATHHOUSE, OVERLAY_CLINIC, OVERLAY_HOSPITAL, 0},
+    {OVERLAY_BARBER, OVERLAY_BATHHOUSE, OVERLAY_CLINIC, OVERLAY_HOSPITAL, OVERLAY_SICKNESS, 0},
     {OVERLAY_TAX_INCOME, OVERLAY_FOOD_STOCKS, OVERLAY_DESIRABILITY, OVERLAY_SENTIMENT, OVERLAY_MOTHBALL, OVERLAY_WAREHOUSE, 0},
 };
 
@@ -91,7 +91,7 @@ static void draw_background(void)
 static int get_sidebar_x_offset(void)
 {
     int view_x, view_y, view_width, view_height;
-    city_view_get_unscaled_viewport(&view_x, &view_y, &view_width, &view_height);
+    city_view_get_viewport(&view_x, &view_y, &view_width, &view_height);
     return view_x + view_width;
 }
 
@@ -110,7 +110,8 @@ static void draw_foreground(void)
         }
     }
     if (data.selected_submenu > 0) {
-        image_draw(image_group(GROUP_BULLET), x_offset - 185, 80 + 24 * data.selected_menu);
+        image_draw(image_group(GROUP_BULLET), x_offset - 185, 80 + 24 * data.selected_menu,
+            COLOR_MASK_NONE, SCALE_NONE);
         for (int i = 0; i < data.num_submenu_items; i++) {
             int overlay = SUBMENU_ID_TO_OVERLAY[data.selected_submenu][i];
             int translation = get_overlay_translation(overlay);

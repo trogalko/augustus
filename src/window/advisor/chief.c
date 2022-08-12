@@ -26,7 +26,7 @@
 
 static void draw_title(int y, int text_id)
 {
-    image_draw(image_group(GROUP_BULLET), 32, y + 1);
+    image_draw(image_group(GROUP_BULLET), 32, y + 1, COLOR_MASK_NONE, SCALE_NONE);
     lang_text_draw(61, text_id, 52, y, FONT_NORMAL_WHITE);
 
 }
@@ -36,7 +36,7 @@ static int draw_background(void)
     int width;
 
     outer_panel_draw(0, 0, 40, ADVISOR_HEIGHT);
-    image_draw(image_group(GROUP_ADVISOR_ICONS) + 11, 10, 10);
+    image_draw(image_group(GROUP_ADVISOR_ICONS) + 11, 10, 10, COLOR_MASK_NONE, SCALE_NONE);
 
     lang_text_draw(61, 0, 60, 12, FONT_LARGE_BLACK);
     inner_panel_draw(24, 60, 37, 17);
@@ -47,7 +47,7 @@ static int draw_background(void)
         width = lang_text_draw(61, 12, X_OFFSET, 66, FONT_NORMAL_RED);
         width += text_draw_percentage(city_labor_unemployment_percentage(), X_OFFSET + width, 66, FONT_NORMAL_RED);
         text_draw_number(city_labor_workers_unemployed() - city_labor_workers_needed(), '(', ")",
-            X_OFFSET + width, 66, FONT_NORMAL_RED);
+            X_OFFSET + width, 66, FONT_NORMAL_RED, 0);
     } else if (city_labor_workers_needed() > 0) {
         width = lang_text_draw(61, 13, X_OFFSET, 66, FONT_NORMAL_RED);
         lang_text_draw_amount(8, 12, city_labor_workers_needed(), X_OFFSET + width, 66, FONT_NORMAL_RED);
@@ -101,14 +101,14 @@ static int draw_background(void)
     }
 
     // housing capacity
-    image_draw(image_group(GROUP_BULLET), 32, 126 + 1);
+    image_draw(image_group(GROUP_BULLET), 32, 126 + 1, COLOR_MASK_NONE, SCALE_NONE);
     text_draw(translation_for(TR_HEADER_HOUSING), 52, 126, FONT_NORMAL_WHITE, 0);
 
     if (!city_population_open_housing_capacity()) {
         width = text_draw(translation_for(TR_ADVISOR_HOUSING_NO_ROOM), X_OFFSET, 126, FONT_NORMAL_GREEN, 0);
     } else {
         width = text_draw(translation_for(TR_ADVISOR_HOUSING_ROOM), X_OFFSET, 126, FONT_NORMAL_GREEN, 0);
-        text_draw_number(city_population_open_housing_capacity(), '@', " ", X_OFFSET + width, 126, FONT_NORMAL_GREEN);
+        text_draw_number(city_population_open_housing_capacity(), '@', " ", X_OFFSET + width, 126, FONT_NORMAL_GREEN, 0);
     }
 
     // food stocks
@@ -191,11 +191,14 @@ static int draw_background(void)
     // health
     draw_title(226, 7);
     int health_rate = city_health();
-    if (health_rate >= 40) {
-        lang_text_draw(56, health_rate / 10 + 27, X_OFFSET, 226, FONT_NORMAL_GREEN);
-    } else {
-        lang_text_draw(56, health_rate / 10 + 27, X_OFFSET, 226, FONT_NORMAL_RED);
+    int text_id = health_rate / 10 + 27;
+    int sickness_level = city_health_get_global_sickness_level();
+    if (sickness_level == SICKNESS_LEVEL_HIGH) {
+        text_id = 30;
+    } else if (sickness_level == SICKNESS_LEVEL_PLAGUE) {
+        text_id = 27;
     }
+    lang_text_draw(56, text_id, X_OFFSET, 226, health_rate >= 40 && sickness_level < SICKNESS_LEVEL_HIGH ? FONT_NORMAL_GREEN : FONT_NORMAL_RED);
 
     // education
     house_demands *demands = city_houses_demands();

@@ -47,7 +47,7 @@ typedef struct building {
     short figure_id;
     short figure_id2; // labor seeker or market supplier
     short immigrant_figure_id;
-    short figure_id4; // tower ballista or burning ruin prefect
+    short figure_id4; // tower ballista, burning ruin prefect, doctor healing plague
     unsigned char figure_spawn_delay;
     unsigned char days_since_offering;
     unsigned char figure_roam_direction;
@@ -102,6 +102,9 @@ typedef struct building {
             unsigned char is_stockpiling;
             unsigned char orientation;
             short fishing_boat_id;
+            unsigned char age_months;
+            unsigned char average_production_per_month;
+            short production_current_month;
         } industry;
         struct {
             unsigned char num_shows;
@@ -141,8 +144,9 @@ typedef struct building {
         struct {
             short resources_needed[16];
             int upgrades;
-            int progress;
+            short progress;
             short phase;
+            short secondary_frame;
         } monument;
         struct {
             unsigned char was_tent;
@@ -150,10 +154,13 @@ typedef struct building {
         struct {
             short exceptions;
         } roadblock;
+        struct {
+            short flag_frame;
+        } warehouse;
     } data;
     int tax_income_or_storage;
     unsigned char house_days_without_food;
-    unsigned char ruin_has_plague;
+    unsigned char has_plague;
     signed char desirability;
     unsigned char is_deleted;
     unsigned char is_adjacent_to_water;
@@ -174,9 +181,17 @@ typedef struct building {
     unsigned char variant;
     unsigned char upgrade_level;
     unsigned char strike_duration_days;
+    unsigned char sickness_level;
+    unsigned char sickness_duration;
+    unsigned char sickness_doctor_cure;
+    unsigned char fumigation_frame;
+    unsigned char fumigation_direction;
 } building;
 
 building *building_get(int id);
+
+void building_get_from_buffer(buffer *buf, int id, building *b, int includes_building_size, int save_version,
+    int buffer_offset);
 
 int building_count(void);
 
@@ -227,6 +242,8 @@ int building_mothball_toggle(building *b);
 int building_mothball_set(building *b, int value);
 
 int building_get_tourism(const building *b);
+
+int building_get_laborers(building_type type);
 
 unsigned char building_stockpiling_toggle(building *b);
 

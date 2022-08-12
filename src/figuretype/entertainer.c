@@ -129,11 +129,13 @@ static building *determine_destination(figure *f)
             if ((type == BUILDING_HIPPODROME || type == BUILDING_COLOSSEUM) && b->data.monument.phase != -1) {
                 continue;
             }
-            if (b->distance_from_entry && b->road_network_id == road_network) {
-                if (type == BUILDING_HIPPODROME && b->prev_part_building_id) {
-                    continue;
-                }
+            if (!b->distance_from_entry || b->road_network_id != road_network) {
+                continue;
             }
+            if (type == BUILDING_HIPPODROME && b->prev_part_building_id) {
+                continue;
+            }
+
             int days_left = use_secondary_entertainment ? b->data.entertainment.days2 : b->data.entertainment.days1;
             int dist = 2 * days_left + calc_maximum_distance(f->x, f->y, b->x, b->y);
             if (dist < min_distance) {
@@ -211,6 +213,12 @@ static void update_image(figure *f)
     if (f->action_state == FIGURE_ACTION_150_ATTACK) {
         if (f->type == FIGURE_GLADIATOR) {
             f->image_id = image_id + 104 + dir + 8 * (f->image_offset / 2);
+            // Correct for two missing frames, animation is glitchy otherwise
+            if (f->image_id >= 5705 && f->image_id <= 5706) {
+                f->image_id -= 8;
+            } else if (f->image_id > 5705) {
+                f->image_id -= 2;
+            }
         } else {
             f->image_id = image_id + dir;
         }
@@ -399,6 +407,7 @@ void figure_entertainer_action(figure *f)
                     f->action_state = FIGURE_ACTION_95_ENTERTAINER_RETURNING;
                     f->destination_x = x_road;
                     f->destination_y = y_road;
+                    figure_route_remove(f);
                 } else {
                     f->state = FIGURE_STATE_DEAD;
                 }

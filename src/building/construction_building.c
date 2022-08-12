@@ -6,6 +6,7 @@
 #include "building/construction.h"
 #include "building/construction_warning.h"
 #include "building/count.h"
+#include "building/distribution.h"
 #include "building/dock.h"
 #include "building/image.h"
 #include "building/menu.h"
@@ -35,7 +36,7 @@
 static void add_fort(int type, building *fort)
 {
     fort->prev_part_building_id = 0;
-    map_building_tiles_add(fort->id, fort->x, fort->y, fort->size, image_group(GROUP_BUILDING_FORT), TERRAIN_BUILDING);
+    map_building_tiles_add(fort->id, fort->x, fort->y, fort->size, building_image_get(fort), TERRAIN_BUILDING);
     if (type == BUILDING_FORT_LEGIONARIES) {
         fort->subtype.fort_figure_type = FIGURE_FORT_LEGIONARY;
     } else if (type == BUILDING_FORT_JAVELIN) {
@@ -169,11 +170,20 @@ static void add_to_map(int type, building *b, int size,
             add_building(b);
             map_tiles_update_area_roads(b->x, b->y, 5);
             break;
+        // Don't autodistribute wine for new Venus temples
+        case BUILDING_SMALL_TEMPLE_VENUS:
+            add_building(b);
+            building_distribution_unaccept_all_goods(b);
+            break;
+        case BUILDING_LARGE_TEMPLE_VENUS:
+            map_tiles_update_area_roads(b->x, b->y, 5);
+            building_monument_set_phase(b, MONUMENT_START);
+            building_distribution_unaccept_all_goods(b);
+            break;
         case BUILDING_LARGE_TEMPLE_CERES:
         case BUILDING_LARGE_TEMPLE_NEPTUNE:
         case BUILDING_LARGE_TEMPLE_MERCURY:
         case BUILDING_LARGE_TEMPLE_MARS:
-        case BUILDING_LARGE_TEMPLE_VENUS:
             map_tiles_update_area_roads(b->x, b->y, 5);
             building_monument_set_phase(b, MONUMENT_START);
             break;
@@ -271,8 +281,10 @@ static void add_to_map(int type, building *b, int size,
             add_building(b);
             break;
         case BUILDING_SMALL_STATUE:
+        case BUILDING_MEDIUM_STATUE:
         case BUILDING_HORSE_STATUE:
         case BUILDING_LEGION_STATUE:
+        case BUILDING_GLADIATOR_STATUE:
             b->subtype.orientation = building_rotation_get_rotation();
             add_building(b);
             break;
@@ -322,7 +334,7 @@ int building_construction_place_building(building_type type, int x, int y)
     // extra checks
     if (type == BUILDING_GATEHOUSE) {
         if (!map_tiles_are_clear(x, y, size, terrain_mask)) {
-            city_warning_show(WARNING_CLEAR_LAND_NEEDED);
+            city_warning_show(WARNING_CLEAR_LAND_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
         if (!building_orientation) {
@@ -340,7 +352,7 @@ int building_construction_place_building(building_type type, int x, int y)
     }
     if (type == BUILDING_TRIUMPHAL_ARCH) {
         if (!map_tiles_are_clear(x, y, size, terrain_mask)) {
-            city_warning_show(WARNING_CLEAR_LAND_NEEDED);
+            city_warning_show(WARNING_CLEAR_LAND_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
         if (!building_orientation) {
@@ -355,27 +367,27 @@ int building_construction_place_building(building_type type, int x, int y)
     if (type == BUILDING_SHIPYARD || type == BUILDING_WHARF) {
         if (map_water_determine_orientation_size2(
             x, y, 0, &waterside_orientation_abs, &waterside_orientation_rel)) {
-            city_warning_show(WARNING_SHORE_NEEDED);
+            city_warning_show(WARNING_SHORE_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
     } else if (type == BUILDING_DOCK) {
         if (map_water_determine_orientation_size3(
             x, y, 0, &waterside_orientation_abs, &waterside_orientation_rel)) {
-            city_warning_show(WARNING_SHORE_NEEDED);
+            city_warning_show(WARNING_SHORE_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
         if (!building_dock_is_connected_to_open_water(x, y)) {
-            city_warning_show(WARNING_DOCK_OPEN_WATER_NEEDED);
+            city_warning_show(WARNING_DOCK_OPEN_WATER_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
     } else {
         if (!map_tiles_are_clear(x, y, size, terrain_mask)) {
-            city_warning_show(WARNING_CLEAR_LAND_NEEDED);
+            city_warning_show(WARNING_CLEAR_LAND_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
         int warning_id;
         if (!building_construction_can_place_on_terrain(x, y, &warning_id)) {
-            city_warning_show(warning_id);
+            city_warning_show(warning_id, NEW_WARNING_SLOT);
             return 0;
         }
     }
@@ -386,15 +398,15 @@ int building_construction_place_building(building_type type, int x, int y)
         int x_offset = offsets_x[orient_index];
         int y_offset = offsets_y[orient_index];
         if (!map_tiles_are_clear(x + x_offset, y + y_offset, 4, terrain_mask)) {
-            city_warning_show(WARNING_CLEAR_LAND_NEEDED);
+            city_warning_show(WARNING_CLEAR_LAND_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
         if (formation_get_num_legions_cached() >= formation_get_max_legions()) {
-            city_warning_show(WARNING_MAX_LEGIONS_REACHED);
+            city_warning_show(WARNING_MAX_LEGIONS_REACHED, NEW_WARNING_SLOT);
             return 0;
         }
         if (!city_buildings_has_mess_hall()) {
-            city_warning_show(WARNING_NO_MESS_HALL);
+            city_warning_show(WARNING_NO_MESS_HALL, NEW_WARNING_SLOT);
             return 0;
         }
     }
@@ -403,30 +415,30 @@ int building_construction_place_building(building_type type, int x, int y)
         if (!empire_has_access_to_resource(RESOURCE_CLAY) ||
             !empire_has_access_to_resource(RESOURCE_TIMBER) ||
             !empire_has_access_to_resource(RESOURCE_MARBLE)) {
-            city_warning_show(WARNING_RESOURCES_NOT_AVAILABLE);
+            city_warning_show(WARNING_RESOURCES_NOT_AVAILABLE, NEW_WARNING_SLOT);
             return 0;
         }
     }
 
-    if (building_monument_has_monument(type) && !building_monument_type_is_mini_monument(type)) {
-        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+    if (building_monument_get_id(type) && !building_monument_type_is_mini_monument(type)) {
+        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
         return 0;
     }
 
     if (building_monument_is_grand_temple(type) &&
         building_monument_count_grand_temples() >= config_get(CONFIG_GP_CH_MAX_GRAND_TEMPLES)) {
-        city_warning_show(WARNING_MAX_GRAND_TEMPLES);
+        city_warning_show(WARNING_MAX_GRAND_TEMPLES, NEW_WARNING_SLOT);
         return 0;
     }
     if (type == BUILDING_COLOSSEUM) {
         if (building_count_colosseum()) {
-            city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+            city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
             return 0;
         }
     }
     if (type == BUILDING_HIPPODROME) {
         if (city_buildings_has_hippodrome()) {
-            city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+            city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
             return 0;
         }
         int x_offset_1, y_offset_1;
@@ -435,24 +447,24 @@ int building_construction_place_building(building_type type, int x, int y)
         building_rotation_get_offset_with_rotation(10, building_rotation_get_rotation(), &x_offset_2, &y_offset_2);
         if (!map_tiles_are_clear(x + x_offset_1, y + y_offset_1, 5, terrain_mask) ||
             !map_tiles_are_clear(x + x_offset_2, y + y_offset_2, 5, terrain_mask)) {
-            city_warning_show(WARNING_CLEAR_LAND_NEEDED);
+            city_warning_show(WARNING_CLEAR_LAND_NEEDED, NEW_WARNING_SLOT);
             return 0;
         }
     }
     if (type == BUILDING_SENATE_UPGRADED && city_buildings_has_senate()) {
-        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
         return 0;
     }
     if (type == BUILDING_CARAVANSERAI && city_buildings_has_caravanserai()) {
-        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
         return 0;
     }
     if (type == BUILDING_BARRACKS && city_buildings_has_barracks() && !config_get(CONFIG_GP_CH_MULTIPLE_BARRACKS)) {
-        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
         return 0;
     }
     if (type == BUILDING_MESS_HALL && city_buildings_has_mess_hall()) {
-        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE);
+        city_warning_show(WARNING_ONE_BUILDING_OF_TYPE, NEW_WARNING_SLOT);
         return 0;
     }
     building_construction_warning_check_all(type, x, y, size);

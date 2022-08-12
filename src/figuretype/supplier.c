@@ -167,8 +167,8 @@ static int change_market_supplier_destination(figure *f, int dst_building_id)
     f->destination_building_id = dst_building_id;
     building *b_dst = building_get(dst_building_id);
     map_point road;
-    if (!map_has_road_access(b_dst->x, b_dst->y, b_dst->size, &road) &&
-        !map_has_road_access(b_dst->x, b_dst->y, 3, &road)) {
+    if (!map_has_road_access_rotation(b_dst->subtype.orientation, b_dst->x, b_dst->y, b_dst->size, &road) &&
+        !map_has_road_access_rotation(b_dst->subtype.orientation, b_dst->x, b_dst->y, 3, &road)) {
         return 0;
     }
     f->action_state = FIGURE_ACTION_145_SUPPLIER_GOING_TO_STORAGE;
@@ -182,6 +182,7 @@ static int recalculate_market_supplier_destination(figure *f)
     int item = f->collecting_item_id;
     building *market = building_get(f->building_id);
     inventory_storage_info info[INVENTORY_MAX];
+
     int road_network = map_road_network_get(f->grid_offset);
     if (!road_network) {
         return 1;
@@ -190,6 +191,7 @@ static int recalculate_market_supplier_destination(figure *f)
         road_network, f->x, f->y, MAX_DISTANCE)) {
         return 0;
     }
+
     if (f->building_id == info[item].building_id) {
         return 1;
     }
@@ -211,6 +213,7 @@ static int recalculate_market_supplier_destination(figure *f)
 
 void figure_supplier_action(figure *f)
 {
+
     f->terrain_usage = TERRAIN_USAGE_ROADS;
     f->use_cross_country = 0;
     f->max_roam_length = 800;
@@ -291,10 +294,10 @@ void figure_supplier_action(figure *f)
     } else if (f->type == FIGURE_LIGHTHOUSE_SUPPLIER || f->type == FIGURE_CARAVANSERAI_SUPPLIER) {
         int dir = figure_image_normalize_direction(f->direction < 8 ? f->direction : f->previous_tile_direction);
         if (f->action_state == FIGURE_ACTION_149_CORPSE) {
-            f->image_id = assets_get_image_id("Construction_Guilds", "Slave death 01") +
+            f->image_id = assets_get_image_id("Logistics", "Slave death 01") +
                 figure_image_corpse_offset(f);
         } else {
-            f->image_id = assets_get_image_id("Construction_Guilds", "Slave NE 01") +
+            f->image_id = assets_get_image_id("Logistics", "Slave NE 01") +
                 dir * 12 + f->image_offset;
         }
     } else {
@@ -335,17 +338,17 @@ void figure_delivery_boy_action(figure *f)
 
     if (f->type == FIGURE_MESS_HALL_COLLECTOR) {
         if (f->action_state == FIGURE_ACTION_149_CORPSE) {
-            f->image_id = assets_get_image_id("Military_Buildings", "M Hall death 01") +
+            f->image_id = assets_get_image_id("Military", "M Hall death 01") +
                 figure_image_corpse_offset(f);
         } else {
-            f->image_id = assets_get_image_id("Military_Buildings", "M Hall NE 01") +
+            f->image_id = assets_get_image_id("Military", "M Hall NE 01") +
                 dir * 12 + f->image_offset;
         }
     } else if (f->type == FIGURE_CARAVANSERAI_COLLECTOR) {
         if (f->action_state == FIGURE_ACTION_149_CORPSE) {
-            f->image_id = assets_get_image_id("Construction_Guilds", "Slave death 01") + figure_image_corpse_offset(f);
+            f->image_id = assets_get_image_id("Logistics", "Slave death 01") + figure_image_corpse_offset(f);
         } else {
-            f->image_id = assets_get_image_id("Construction_Guilds", "Slave NE 01")
+            f->image_id = assets_get_image_id("Logistics", "Slave NE 01")
                 + dir * 12 + f->image_offset;
         }
     } else {
@@ -356,5 +359,60 @@ void figure_delivery_boy_action(figure *f)
             f->image_id = image_group(GROUP_FIGURE_DELIVERY_BOY) +
                 dir + 8 * f->image_offset;
         }
+    }
+}
+
+void figure_fort_supplier_action(figure *f)
+{
+    f->is_ghost = 0;
+    f->terrain_usage = TERRAIN_USAGE_PREFER_ROADS;
+    figure_image_increase_offset(f, 12);
+
+    building *b = building_get(f->building_id);
+    if (!b || b->state != BUILDING_STATE_IN_USE || b->type != BUILDING_MESS_HALL) {
+        f->state = FIGURE_STATE_DEAD;
+    }
+
+    switch (f->action_state) {
+        case FIGURE_ACTION_150_ATTACK:
+            figure_combat_handle_attack(f);
+            break;
+        case FIGURE_ACTION_149_CORPSE:
+            figure_combat_handle_corpse(f);
+            break;
+        case FIGURE_ACTION_236_SUPPLY_POST_GOING_TO_FORT:
+            figure_movement_move_ticks(f, 1);
+            if (f->direction == DIR_FIGURE_AT_DESTINATION) {
+                f->action_state = FIGURE_ACTION_237_SUPPLY_POST_RETURNING_FROM_FORT;
+                f->destination_x = f->source_x;
+                f->destination_y = f->source_y;
+                f->wait_ticks = 20;
+            } else if (f->direction == DIR_FIGURE_REROUTE) {
+                figure_route_remove(f);
+            } else if (f->direction == DIR_FIGURE_LOST) {
+                f->state = FIGURE_STATE_DEAD;
+            }
+            break;
+        case FIGURE_ACTION_237_SUPPLY_POST_RETURNING_FROM_FORT:
+            if (f->wait_ticks) {
+                f->wait_ticks--;
+            } else {
+                figure_movement_move_ticks(f, 1);
+                if (f->direction == DIR_FIGURE_REROUTE) {
+                    figure_route_remove(f);
+                } else if (f->direction == DIR_FIGURE_AT_DESTINATION || f->direction == DIR_FIGURE_LOST) {
+                    f->state = FIGURE_STATE_DEAD;
+                }
+            }
+            break;
+    }
+
+    int dir = figure_image_normalize_direction(f->direction < 8 ? f->direction : f->previous_tile_direction);
+    if (f->action_state == FIGURE_ACTION_149_CORPSE) {
+        f->image_id = assets_get_image_id("Military", "M Hall death 01") +
+            figure_image_corpse_offset(f);
+    } else {
+        f->image_id = assets_get_image_id("Military", "M Hall NE 01") +
+            dir * 12 + f->image_offset;
     }
 }

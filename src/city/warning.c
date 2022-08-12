@@ -11,36 +11,21 @@
 #define MAX_WARNINGS 5
 #define MAX_TEXT 100
 #define TIMEOUT_MS 15000
+#define TIMEOUT_FLASH 30
 
-struct warning {
+typedef struct {
     int in_use;
     time_millis time;
+    int id;
+    int flashing;
     uint8_t text[MAX_TEXT];
-};
+} warning;
 
-static struct warning warnings[MAX_WARNINGS];
+static warning warnings[MAX_WARNINGS];
+static int current_id;
 
-static struct warning *new_warning(void)
+int city_warning_show(warning_type type, int id)
 {
-    for (int i = 0; i < MAX_WARNINGS; i++) {
-        if (!warnings[i].in_use) {
-            return &warnings[i];
-        }
-    }
-    return 0;
-}
-
-void city_warning_show(warning_type type)
-{
-    if (!setting_warnings()) {
-        return;
-    }
-    struct warning *w = new_warning();
-    if (!w) {
-        return;
-    }
-    w->in_use = 1;
-    w->time = time_get_millis();
     const uint8_t *text;
     if (type == WARNING_ORIENTATION) {
         text = lang_get_string(17, city_view_orientation());
@@ -68,11 +53,62 @@ void city_warning_show(warning_type type)
         text = translation_for(TR_WARNING_BET_VICTORY);
     } else if (type == WARNING_BET_DEFEAT) {
         text = translation_for(TR_WARNING_BET_DEFEAT);
+    } else if (type == WARNING_DATA_COPY_SUCCESS) {
+        text = translation_for(TR_CITY_WARNING_DATA_COPY_SUCCESS);
+    } else if (type == WARNING_DATA_COPY_NOT_SUPPORTED) {
+        text = translation_for(TR_CITY_WARNING_DATA_COPY_NOT_SUPPORTED);
+    } else if (type == WARNING_DATA_PASTE_FAILURE) {
+        text = translation_for(TR_CITY_WARNING_DATA_PASTE_NOT_SUPPORTED);
+    } else if (type == WARNING_DATA_PASTE_SUCCESS) {
+        text = translation_for(TR_CITY_WARNING_DATA_PASTE_SUCCESS);
     } else {
         text = lang_get_string(19, type - 2);
     }
+    return city_warning_show_custom(text, id);
+}
 
-    string_copy(text, w->text, MAX_TEXT);
+static warning *get_warning_slot(int id, const uint8_t *text)
+{
+    if (id != 0) {
+        for (int i = 0; i < MAX_WARNINGS; i++) {
+            if (warnings[i].id == id && warnings[i].in_use) {
+                return &warnings[i];
+            }
+        }
+    }
+    for (int i = 0; i < MAX_WARNINGS; i++) {
+        if (warnings[i].in_use && string_equals(warnings[i].text, text)) {
+            if (warnings[i].time != time_get_millis()) {
+                warnings[i].flashing = 1;
+            }
+            return &warnings[i];
+        }
+    }
+    for (int i = 0; i < MAX_WARNINGS; i++) {
+        if (!warnings[i].in_use) {
+            warnings[i].id = ++current_id;
+            warnings[i].flashing = 0;
+            return &warnings[i];
+        }
+    }
+    return 0;
+}
+
+int city_warning_show_custom(const uint8_t *text, int id)
+{
+    if (!setting_warnings()) {
+        return 0;
+    }
+    warning *w = get_warning_slot(id, text);
+    if (!w) {
+        return 0;
+    }
+    w->in_use = 1;
+    w->time = time_get_millis();
+    if (!w->flashing) {
+        string_copy(text, w->text, MAX_TEXT);
+    }
+    return w->id;
 }
 
 int city_has_warnings(void)
@@ -85,10 +121,17 @@ int city_has_warnings(void)
     return 0;
 }
 
-const uint8_t *city_warning_get(int id)
+const uint8_t *city_warning_get(int position)
 {
-    if (warnings[id].in_use) {
-        return warnings[id].text;
+    if (warnings[position].in_use) {
+        if (warnings[position].flashing) {
+            if (time_get_millis() - warnings[position].time > TIMEOUT_FLASH) {
+                warnings[position].flashing = 0;
+                window_request_refresh();
+            }
+        } else {
+            return warnings[position].text;
+        }
     }
     return 0;
 }
@@ -108,15 +151,4 @@ void city_warning_clear_outdated(void)
             window_request_refresh();
         }
     }
-}
-
-void city_warning_show_console(uint8_t *warning_text)
-{
-    struct warning *w = new_warning();
-    if (!w) {
-        return;
-    }
-    w->in_use = 1;
-    w->time = time_get_millis();
-    string_copy(warning_text, w->text, MAX_TEXT);
 }

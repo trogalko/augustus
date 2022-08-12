@@ -30,11 +30,16 @@ static const char *ini_keys[] = {
     "ui_allow_cycling_temples",
     "ui_show_water_structure_range",
     "ui_show_construction_size",
-    "ui_zoom",
     "ui_highlight_legions",
     "ui_show_military_sidebar",
     "ui_disable_map_drag",
     "ui_show_max_prosperity",
+    "ui_digit_separator",
+    "ui_inverse_map_drag",
+    "ui_message_alerts",
+    "ui_show_grid",
+    "ui_show_partial_grid_around_construction",
+    "ui_always_show_rotation_buttons",
     "gameplay_change_max_grand_temples",
     "gameplay_change_jealous_gods",
     "gameplay_change_global_labour",
@@ -56,6 +61,7 @@ static const char *ini_keys[] = {
     "gameplay_change_monuments_boost_culture_rating",
     "gameplay_change_disable_infinite_wolves_spawning",
     "gameplay_change_romers_dont_skip_corners",
+    "gameplay_change_yearly_autosave",
 };
 
 static const char *ini_string_keys[] = {
@@ -72,7 +78,6 @@ static int default_values[CONFIG_MAX_ENTRIES] = {
     [CONFIG_GENERAL_VIDEO_VOLUME] = 100,
     [CONFIG_UI_SIDEBAR_INFO] = 1,
     [CONFIG_UI_SMOOTH_SCROLLING] = 1,
-    [CONFIG_UI_ZOOM] = 1,
     [CONFIG_UI_SHOW_WATER_STRUCTURE_RANGE] = 1,
     [CONFIG_UI_SHOW_CONSTRUCTION_SIZE] = 1,
     [CONFIG_UI_HIGHLIGHT_LEGIONS] = 1,

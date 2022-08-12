@@ -497,10 +497,8 @@ static void consume_resource(building *b, int inventory, int amount)
 {
     if (amount > 0) {
         if (amount > b->data.house.inventory[inventory]) {
-            //b->data.house.inventory[inventory] = 0;
             b->data.house.inventory[inventory] = (2 * amount);
         } else {
-            //b->data.house.inventory[inventory] -= amount;
             if (b->data.house.inventory - amount <= 0) {
                 b->data.house.inventory[inventory] = amount;
             }
@@ -571,7 +569,9 @@ void building_house_process_evolve_and_consume_goods(void)
                 continue;
             }
             building_house_check_for_corruption(b);
-            has_expanded |= evolve_callback[b->type - BUILDING_HOUSE_VACANT_LOT](b, demands);
+            if (!b->has_plague) {
+                has_expanded |= evolve_callback[b->type - BUILDING_HOUSE_VACANT_LOT](b, demands);
+            }
             if (game_time_day() == 0 || game_time_day() == 7) {
                 consume_resources(b);
             }

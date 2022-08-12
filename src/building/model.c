@@ -99,6 +99,13 @@ static void override_model_data(void)
     buildings[BUILDING_LARGE_TEMPLE_VENUS].desirability_step = 2;
     buildings[BUILDING_LARGE_TEMPLE_VENUS].desirability_step_size = -2;
     buildings[BUILDING_LARGE_TEMPLE_VENUS].desirability_range = 5;
+
+    buildings[BUILDING_WELL].laborers = 0;
+    buildings[BUILDING_GATEHOUSE].laborers = 0;
+    buildings[BUILDING_FORT_JAVELIN].laborers = 0;
+    buildings[BUILDING_FORT_LEGIONARIES].laborers = 0;
+    buildings[BUILDING_FORT_MOUNTED].laborers = 0;
+    buildings[BUILDING_FORT].laborers = 0;
 }
 
 int model_load(void)
@@ -185,7 +192,7 @@ int model_load(void)
     return 1;
 }
 
-const model_building MODEL_ROADBLOCK = { 40,0,0,0,0 };
+const model_building MODEL_ROADBLOCK = { 12,0,0,0,0 };
 const model_building MODEL_WORK_CAMP = { 150,-10,2,3,4,20 };
 const model_building MODEL_ARCHITECT_GUILD = { 200,-8,1,2,4,12 };
 const model_building MODEL_GRAND_TEMPLE_CERES = { 2500,20,2,-4,5,50 };
@@ -202,10 +209,10 @@ const model_building MODEL_ARENA = { 500,-3,1,1,3,25 };
 const model_building MODEL_COLOSSEUM = { 1500,-3,1,1,3,100 };
 const model_building MODEL_HIPPODROME = { 3500,-3,1,1,3,150 };
 const model_building MODEL_NULL = { 0,0,0,0,0 };
-const model_building MODEL_LARARIUM = { 30, 4, 1, -1, 3, 0 };
-const model_building MODEL_NYMPHAEUM = { 500,12,2,-1,6,0 };
-const model_building MODEL_SMALL_MAUSOLEUM = { 500,-8,1,3,5,0 };
-const model_building MODEL_LARGE_MAUSOLEUM = { 1500,-10,1,3,6,0 };
+const model_building MODEL_LARARIUM = { 45, 4, 1, -1, 3, 0 };
+const model_building MODEL_NYMPHAEUM = { 250,12,2,-1,6,0 };
+const model_building MODEL_SMALL_MAUSOLEUM = { 300,-8,1,3,5,0 };
+const model_building MODEL_LARGE_MAUSOLEUM = { 750,-10,1,3,6,0 };
 const model_building MODEL_WATCHTOWER = { 100,-6,1,2,3,8, };
 const model_building MODEL_CARAVANSERAI = { 500,-10,2,3,4,20 };
 const model_building MODEL_PALISADE = { 6,0,0,0,0,0 };
@@ -214,6 +221,9 @@ const model_building *model_get_building(building_type type)
 {
     switch (type) {
         case BUILDING_ROADBLOCK:
+        case BUILDING_GARDEN_WALL_GATE:
+        case BUILDING_HEDGE_GATE_DARK:
+        case BUILDING_HEDGE_GATE_LIGHT:
             return &MODEL_ROADBLOCK;
         case BUILDING_WORKCAMP:
             return &MODEL_WORK_CAMP;
@@ -258,6 +268,7 @@ const model_building *model_get_building(building_type type)
         case BUILDING_CARAVANSERAI:
             return &MODEL_CARAVANSERAI;
         case BUILDING_PALISADE:
+        case BUILDING_PALISADE_GATE:
             return &MODEL_PALISADE;
         default:
             break;
@@ -268,7 +279,7 @@ const model_building *model_get_building(building_type type)
         type == BUILDING_DECORATIVE_COLUMN || type == BUILDING_GARDEN_WALL ||
         type == BUILDING_COLONNADE || type == BUILDING_GARDEN_WALL || 
         type == BUILDING_ROOFED_GARDEN_WALL || type == BUILDING_GARDEN_PATH ||
-        type == BUILDING_GARDEN_WALL_GATE) {
+        type == BUILDING_GLADIATOR_STATUE) {
         return &buildings[41];
     }
 

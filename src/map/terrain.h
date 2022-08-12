@@ -29,7 +29,9 @@ enum {
     TERRAIN_IMPASSABLE_ENEMY = 0x1237,
     TERRAIN_IMPASSABLE_WOLF = 0xd73f,
     TERRAIN_ELEVATION_ROCK = 0x202,
-    TERRAIN_ALL = 0xffff
+    TERRAIN_ALL = 0xffff,
+    TERRAIN_ORIGINALLY_TREE = 0x10000,
+    TERRAIN_MAP_EDGE = TERRAIN_TREE | TERRAIN_WATER
 };
 
 int map_terrain_is(int grid_offset, int terrain);
@@ -37,6 +39,10 @@ int map_terrain_is(int grid_offset, int terrain);
 int map_terrain_is_superset(int grid_offset, int terrain_sum);
 
 int map_terrain_get(int grid_offset);
+
+int map_terrain_get_from_buffer_16(buffer *buf, int grid_offset);
+
+int map_terrain_get_from_buffer_32(buffer *buf, int grid_offset);
 
 void map_terrain_set(int grid_offset, int terrain);
 
@@ -76,6 +82,8 @@ int map_terrain_exists_tile_in_area_with_type(int x, int y, int size, int terrai
 
 int map_terrain_exists_tile_in_radius_with_type(int x, int y, int size, int radius, int terrain);
 
+int map_terrain_exists_rock_in_radius(int x, int y, int size, int radius);
+
 int map_terrain_exists_clear_tile_in_radius(int x, int y, int size, int radius, int except_grid_offset,
     int *x_tile, int *y_tile);
 
@@ -106,7 +114,8 @@ void map_terrain_clear(void);
 void map_terrain_init_outside_map(void);
 
 void map_terrain_save_state(buffer *buf);
+void map_terrain_save_state_legacy(buffer *buf);
 
-void map_terrain_load_state(buffer *buf);
+void map_terrain_load_state(buffer *buf, int expanded_terrain_data, buffer *images, int legacy_image_buffer);
 
 #endif // MAP_TERRAIN_H

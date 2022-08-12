@@ -132,6 +132,9 @@ void settings_load(void)
         data.window_width = 800;
         data.window_height = 600;
     }
+    if (data.last_advisor <= ADVISOR_NONE || data.last_advisor > ADVISOR_CHIEF) {
+        data.last_advisor = ADVISOR_LABOR;
+    }
 }
 
 void settings_save(void)
@@ -263,6 +266,11 @@ void setting_decrease_game_speed(void)
     } else {
         data.game_speed = calc_bound(data.game_speed - 10, 10, 100);
     }
+}
+
+void setting_set_default_game_speed(void)
+{
+    data.game_speed = 70;
 }
 
 int setting_scroll_speed(void)

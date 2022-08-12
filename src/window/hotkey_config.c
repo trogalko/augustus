@@ -32,7 +32,7 @@ static void button_hotkey(int row, int is_alternative);
 static void button_reset_defaults(int param1, int param2);
 static void button_close(int save, int param2);
 
-static scrollbar_type scrollbar = { 580, 72, 352, on_scroll };
+static scrollbar_type scrollbar = {580, 72, 352, 560, NUM_VISIBLE_OPTIONS, on_scroll, 1};
 
 typedef struct {
     int action;
@@ -55,6 +55,7 @@ static hotkey_widget hotkey_widgets[] = {
     {HOTKEY_RESIZE_TO_1024, TR_HOTKEY_RESIZE_TO_1024},
     {HOTKEY_SAVE_SCREENSHOT, TR_HOTKEY_SAVE_SCREENSHOT},
     {HOTKEY_SAVE_CITY_SCREENSHOT, TR_HOTKEY_SAVE_CITY_SCREENSHOT},
+    {HOTKEY_SAVE_MINIMAP_SCREENSHOT, TR_HOTKEY_SAVE_MINIMAP_SCREENSHOT},
     {HOTKEY_LOAD_FILE, TR_HOTKEY_LOAD_FILE},
     {HOTKEY_SAVE_FILE, TR_HOTKEY_SAVE_FILE},
     {HOTKEY_HEADER, TR_HOTKEY_HEADER_CITY},
@@ -64,8 +65,11 @@ static hotkey_widget hotkey_widgets[] = {
     {HOTKEY_CYCLE_LEGION, TR_HOTKEY_CYCLE_LEGION},
     {HOTKEY_ROTATE_MAP_LEFT, TR_HOTKEY_ROTATE_MAP_LEFT},
     {HOTKEY_ROTATE_MAP_RIGHT, TR_HOTKEY_ROTATE_MAP_RIGHT},
+    {HOTKEY_ROTATE_MAP_NORTH, TR_HOTKEY_ROTATE_MAP_NORTH},
     {HOTKEY_ROTATE_BUILDING, TR_HOTKEY_ROTATE_BUILDING},
     {HOTKEY_ROTATE_BUILDING_BACK, TR_HOTKEY_ROTATE_BUILDING_BACK},
+    {HOTKEY_SHOW_EMPIRE_MAP, TR_HOTKEY_SHOW_EMPIRE_MAP},
+    {HOTKEY_SHOW_MESSAGES, TR_HOTKEY_SHOW_MESSAGES}, 
     {HOTKEY_HEADER, TR_HOTKEY_HEADER_BUILD},
     {HOTKEY_BUILD_CLONE, TR_HOTKEY_BUILD_CLONE},
     {HOTKEY_COPY_BUILDING_SETTINGS, TR_HOTKEY_COPY_SETTINGS},
@@ -87,6 +91,7 @@ static hotkey_widget hotkey_widgets[] = {
     {HOTKEY_BUILD_AQUEDUCT, TR_NONE, GROUP_BUILDINGS, BUILDING_AQUEDUCT},
     {HOTKEY_BUILD_FOUNTAIN, TR_NONE, GROUP_BUILDINGS, BUILDING_FOUNTAIN},
     {HOTKEY_BUILD_ROADBLOCK, TR_NONE, GROUP_BUILDINGS, BUILDING_ROADBLOCK},
+    {HOTKEY_BUILD_WHEAT_FARM, TR_HOTKEY_BUILD_WHEAT_FARM, GROUP_BUILDINGS, BUILDING_WHEAT_FARM},
     {HOTKEY_UNDO, TR_NONE, GROUP_BUILDINGS, 1},
     {HOTKEY_HEADER, TR_HOTKEY_HEADER_ADVISORS},
     {HOTKEY_SHOW_ADVISOR_LABOR, TR_HOTKEY_SHOW_ADVISOR_LABOR},
@@ -110,6 +115,19 @@ static hotkey_widget hotkey_widgets[] = {
     {HOTKEY_SHOW_OVERLAY_DAMAGE, TR_HOTKEY_SHOW_OVERLAY_DAMAGE},
     {HOTKEY_SHOW_OVERLAY_CRIME, TR_HOTKEY_SHOW_OVERLAY_CRIME},
     {HOTKEY_SHOW_OVERLAY_PROBLEMS, TR_HOTKEY_SHOW_OVERLAY_PROBLEMS},
+    {HOTKEY_SHOW_OVERLAY_FOOD_STOCKS, TR_HOTKEY_SHOW_OVERLAY_FOOD_STOCKS},
+    {HOTKEY_SHOW_OVERLAY_ENTERTAINMENT, TR_HOTKEY_SHOW_OVERLAY_ENTERTAINMENT},
+    {HOTKEY_SHOW_OVERLAY_SCHOOL, TR_HOTKEY_SHOW_OVERLAY_SCHOOL},
+    {HOTKEY_SHOW_OVERLAY_LIBRARY, TR_HOTKEY_SHOW_OVERLAY_LIBRARY},
+    {HOTKEY_SHOW_OVERLAY_ACADEMY, TR_HOTKEY_SHOW_OVERLAY_ACADEMY},
+    {HOTKEY_SHOW_OVERLAY_BARBER, TR_HOTKEY_SHOW_OVERLAY_BARBER},
+    {HOTKEY_SHOW_OVERLAY_BATHHOUSE, TR_HOTKEY_SHOW_OVERLAY_BATHHOUSE},
+    {HOTKEY_SHOW_OVERLAY_CLINIC, TR_HOTKEY_SHOW_OVERLAY_CLINIC},
+    {HOTKEY_SHOW_OVERLAY_SICKNESS, TR_HOTKEY_SHOW_OVERLAY_SICKNESS},
+    {HOTKEY_SHOW_OVERLAY_TAX_INCOME, TR_HOTKEY_SHOW_OVERLAY_TAX_INCOME},
+    {HOTKEY_SHOW_OVERLAY_MOTHBALL, TR_HOTKEY_SHOW_OVERLAY_MOTHBALL},
+    {HOTKEY_SHOW_OVERLAY_RELIGION, TR_HOTKEY_SHOW_OVERLAY_RELIGION},
+    {HOTKEY_SHOW_OVERLAY_ROADS, TR_HOTKEY_SHOW_OVERLAY_ROADS},
     {HOTKEY_HEADER, TR_HOTKEY_HEADER_BOOKMARKS},
     {HOTKEY_GO_TO_BOOKMARK_1, TR_HOTKEY_GO_TO_BOOKMARK_1},
     {HOTKEY_GO_TO_BOOKMARK_2, TR_HOTKEY_GO_TO_BOOKMARK_2},
@@ -179,7 +197,7 @@ static struct {
 
 static void init(void)
 {
-    scrollbar_init(&scrollbar, 0, sizeof(hotkey_widgets) / sizeof(hotkey_widget) - NUM_VISIBLE_OPTIONS);
+    scrollbar_init(&scrollbar, 0, sizeof(hotkey_widgets) / sizeof(hotkey_widget));
 
     for (int i = 0; i < HOTKEY_MAX_ITEMS; i++) {
         hotkey_mapping empty = { KEY_TYPE_NONE, KEY_MOD_NONE, i };
@@ -194,7 +212,7 @@ static void init(void)
 
 static void draw_background(void)
 {
-    graphics_clear_screen(CANVAS_UI);
+    graphics_clear_screen();
 
     window_draw_underlying_window();
 
@@ -280,7 +298,9 @@ static void draw_foreground(void)
 static void handle_input(const mouse *m, const hotkeys *h)
 {
     const mouse *m_dialog = mouse_in_dialog(m);
-    if (scrollbar_handle_mouse(&scrollbar, m_dialog)) {
+    if (scrollbar_handle_mouse(&scrollbar, m_dialog, 1)) {
+        data.focus_button = 0;
+        data.bottom_focus_button = 0;
         return;
     }
 

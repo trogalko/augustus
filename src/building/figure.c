@@ -414,8 +414,6 @@ static void spawn_figure_chariot_maker(building *b)
     }
 }
 
-
-
 static void spawn_figure_amphitheater(building *b)
 {
     check_labor_problem(b);
@@ -634,8 +632,8 @@ static void send_supplier_to_destination(figure *f, int dst_building_id)
     f->destination_building_id = dst_building_id;
     building *b_dst = building_get(dst_building_id);
     map_point road;
-    if (map_has_road_access(b_dst->x, b_dst->y, b_dst->size, &road) ||
-        map_has_road_access(b_dst->x, b_dst->y, 3, &road)) {
+    if (map_has_road_access_rotation(b_dst->subtype.orientation, b_dst->x, b_dst->y, b_dst->size, &road) ||
+        map_has_road_access_rotation(b_dst->subtype.orientation, b_dst->x, b_dst->y, 3, &road)) {
         f->action_state = FIGURE_ACTION_145_SUPPLIER_GOING_TO_STORAGE;
         f->destination_x = road.x;
         f->destination_y = road.y;
@@ -861,7 +859,6 @@ static void set_school_graphic(building *b)
     map_building_tiles_add(b->id, b->x, b->y, b->size, building_image_get(b), TERRAIN_BUILDING);
 }
 
-
 static void spawn_figure_school(building *b)
 {
     check_labor_problem(b);
@@ -935,6 +932,15 @@ static void spawn_figure_library(building *b)
     }
 }
 
+static void set_academy_graphic(building *b)
+{
+    if (b->state != BUILDING_STATE_IN_USE) {
+        return;
+    }
+    b->upgrade_level = b->desirability >= 60;
+    map_building_tiles_add(b->id, b->x, b->y, b->size, building_image_get(b), TERRAIN_BUILDING);
+}
+
 static void spawn_figure_academy(building *b)
 {
     check_labor_problem(b);
@@ -943,6 +949,7 @@ static void spawn_figure_academy(building *b)
     }
     map_point road;
     if (map_has_road_access(b->x, b->y, b->size, &road)) {
+        set_academy_graphic(b);
         spawn_labor_seeker(b, road.x, road.y, 50);
         int spawn_delay = default_spawn_delay(b);
         if (!spawn_delay) {
@@ -1408,7 +1415,8 @@ static void spawn_figure_native_hut(building *b)
 static void spawn_figure_native_meeting(building *b)
 {
     map_building_tiles_add(b->id, b->x, b->y, 2, building_image_get(b), TERRAIN_BUILDING);
-    if (city_buildings_is_mission_post_operational() && !has_figure_of_type(b, FIGURE_NATIVE_TRADER)) {
+    int pacified = b->sentiment.native_anger < 100;
+    if (pacified && !has_figure_of_type(b, FIGURE_NATIVE_TRADER)) {
         int x_out, y_out;
         if (map_terrain_get_adjacent_road_or_clear_land(b->x, b->y, b->size, &x_out, &y_out)) {
             b->figure_spawn_delay++;
@@ -1487,10 +1495,19 @@ static void spawn_figure_work_camp(building *b)
         if (has_figure_of_type(b, FIGURE_WORK_CAMP_WORKER)) {
             return;
         }
-        figure *f = figure_create(FIGURE_WORK_CAMP_WORKER, road.x, road.y, DIR_4_BOTTOM);
-        f->action_state = FIGURE_ACTION_203_WORK_CAMP_WORKER_CREATED;
-        b->figure_id = f->id;
-        f->building_id = b->id;
+        int spawn_delay = default_spawn_delay(b);
+        if (!spawn_delay) {
+            return;
+        }
+        b->figure_spawn_delay++;
+        if (b->figure_spawn_delay > spawn_delay) {
+            b->figure_spawn_delay = 0;
+            figure *f = figure_create(FIGURE_WORK_CAMP_WORKER, road.x, road.y, DIR_4_BOTTOM);
+            f->action_state = FIGURE_ACTION_203_WORK_CAMP_WORKER_CREATED;
+            b->figure_id = f->id;
+            f->building_id = b->id;
+        }
+
     }
 }
 
@@ -1503,13 +1520,65 @@ static void spawn_figure_architect_guild(building *b)
         if (has_figure_of_type(b, FIGURE_WORK_CAMP_ARCHITECT)) {
             return;
         }
-        if (building_monument_get_monument(road.x, road.y, RESOURCE_NONE, b->road_network_id, b->distance_from_entry, 0)) {
-            figure *f = figure_create(FIGURE_WORK_CAMP_ARCHITECT, road.x, road.y, DIR_4_BOTTOM);
-            f->action_state = FIGURE_ACTION_206_WORK_CAMP_ARCHITECT_CREATED;
-            b->figure_id = f->id;
-            f->building_id = b->id;
+        int spawn_delay = default_spawn_delay(b);
+        if (!spawn_delay) {
+            return;
+        }
+        b->figure_spawn_delay++;
+        if (b->figure_spawn_delay > spawn_delay) {
+            b->figure_spawn_delay = 0;
+            if (building_monument_get_monument(road.x, road.y, RESOURCE_NONE, b->road_network_id, b->distance_from_entry, 0)) {
+                figure *f = figure_create(FIGURE_WORK_CAMP_ARCHITECT, road.x, road.y, DIR_4_BOTTOM);
+                f->action_state = FIGURE_ACTION_206_WORK_CAMP_ARCHITECT_CREATED;
+                b->figure_id = f->id;
+                f->building_id = b->id;
+            }
         }
     }
+}
+
+static void spawn_figure_fort_supplier(building *fort)
+{
+    building *supply_post = building_get(city_buildings_get_mess_hall());
+
+    if (!supply_post || fort->figure_id2 || !fort->distance_from_entry) {
+        return;
+    }
+
+    if (supply_post->state != BUILDING_STATE_IN_USE) {
+        return;
+    }
+    
+    int total_food_in_mess_hall = 0;
+
+    for (int i = INVENTORY_MIN_FOOD; i < INVENTORY_MAX_FOOD; ++i) {
+        total_food_in_mess_hall += supply_post->data.market.inventory[i];
+    }
+
+    if (!total_food_in_mess_hall) {
+        return;
+    }
+
+    int spawn_delay = 20;
+    fort->figure_spawn_delay++;
+    if (fort->figure_spawn_delay <= spawn_delay) {
+        return;
+    }
+
+    fort->figure_spawn_delay = 0;
+    map_point road;
+    if (map_has_road_access(supply_post->x, supply_post->y, supply_post->size, &road)) {
+        figure *f = figure_create(FIGURE_MESS_HALL_FORT_SUPPLIER, road.x, road.y, DIR_4_BOTTOM);
+        f->action_state = FIGURE_ACTION_236_SUPPLY_POST_GOING_TO_FORT;
+        f->destination_x = fort->road_access_x;
+        f->destination_y = fort->road_access_y;
+        f->source_x = road.x;
+        f->source_y = road.y;
+        f->destination_building_id = fort->id;
+        f->building_id = supply_post->id;
+        fort->figure_id2 = f->id;
+    }
+
 }
 
 static void spawn_figure_mess_hall(building *b)
@@ -1533,6 +1602,7 @@ static void spawn_figure_mess_hall(building *b)
         } else {
             return;
         }
+        
         spawn_mess_hall_supplier(b, road.x, road.y, 1);
         if (b->figure_id) {
             b->figure_spawn_delay++;
@@ -1763,6 +1833,7 @@ void building_figure_generate(void)
                     break;
                 case BUILDING_FORT:
                     formation_legion_update_recruit_status(b);
+                    spawn_figure_fort_supplier(b);
                     break;
                 case BUILDING_BARRACKS:
                     spawn_figure_barracks(b);

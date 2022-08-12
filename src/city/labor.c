@@ -46,6 +46,8 @@ static const int CATEGORY_FOR_BUILDING_TYPE[] = {
     0, 0, 8, 2, 5, 0, 0, 0, 6, 0, // 150
     6, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 160
     -1, -1, -1, 5, -1, -1, 0, -1, -1, -1, // 170
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 180
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 190
 };
 
 static struct {
@@ -203,12 +205,7 @@ static void calculate_workers_needed_per_category(void)
             continue;
         }
 
-        if (category == LABOR_CATEGORY_WATER && building_monument_working(BUILDING_GRAND_TEMPLE_NEPTUNE)) {
-            //Neptune Gt base bonus
-            city_data.labor.categories[category].workers_needed += (model_get_building(b->type)->laborers) / 2;
-        } else {
-            city_data.labor.categories[category].workers_needed += model_get_building(b->type)->laborers;
-        }
+        city_data.labor.categories[category].workers_needed += (building_get_laborers(b->type));
 
         city_data.labor.categories[category].total_houses_covered += b->houses_covered;
         city_data.labor.categories[category].buildings++;
@@ -373,7 +370,7 @@ static void allocate_workers_to_water(void)
                     b->num_workers = workers_per_building;
                 }
             } else {
-                b->num_workers = model_get_building(b->type)->laborers;
+                b->num_workers = building_get_laborers(b->type);
             }
         }
     }

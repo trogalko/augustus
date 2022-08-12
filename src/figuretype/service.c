@@ -3,8 +3,9 @@
 #include "assets/assets.h"
 #include "building/building.h"
 #include "building/market.h"
-#include "core/config.h"
-#include "core/image.h"
+#include "city/buildings.h"
+#include "city/health.h"
+#include "core/calc.h"
 #include "figure/combat.h"
 #include "figure/image.h"
 #include "figure/movement.h"
@@ -12,6 +13,8 @@
 #include "figuretype/supplier.h"
 #include "map/building.h"
 #include "map/road_access.h"
+
+static const int DOCTOR_HEALING_OFFSETS[] = { 0, 1, 2, 3, 4, 5, 4, 3, 2, 1};
 
 static void roamer_action(figure *f, int num_ticks)
 {
@@ -240,9 +243,160 @@ void figure_tavern_action(figure *f)
     }
 }
 
+static int fight_plague(figure *f, int force)
+{
+    int building_with_plague = 0;
+
+    // Find in houses
+    for (building_type type = BUILDING_HOUSE_SMALL_TENT; type <= BUILDING_HOUSE_LUXURY_PALACE; type++) {
+        for (building *house = building_first_of_type(type); house; house = house->next_of_type) {
+            if (house->has_plague) {
+                building_with_plague = house->id;
+                break;
+            }
+        }
+    }
+
+    // If no houses, find in docks
+    if (!building_with_plague) {
+        for (building *dock = building_first_of_type(BUILDING_DOCK); dock; dock = dock->next_of_type) {
+            if (dock->has_plague) {
+                building_with_plague = dock->id;
+                break;
+            }
+        }
+    }
+
+    // If no docks, find in warehouses
+    if (!building_with_plague) {
+        for (building *warehouse = building_first_of_type(BUILDING_WAREHOUSE); warehouse; warehouse = warehouse->next_of_type) {
+            if (warehouse->has_plague) {
+                building_with_plague = warehouse->id;
+                break;
+            }
+        }
+
+        // If no warehouse, find in granaries
+        if (!building_with_plague) {
+            for (building *granary = building_first_of_type(BUILDING_GRANARY); granary; granary = granary->next_of_type) {
+                if (granary->has_plague) {
+                    building_with_plague = granary->id;
+                    break;
+                }
+            }
+        }
+    }
+
+    // No plague in buildings
+    if (!building_with_plague) {
+        return 0;
+    }
+
+    switch (f->action_state) {
+        case FIGURE_ACTION_231_DOCTOR_GOING_TO_PLAGUE:
+        case FIGURE_ACTION_232_DOCTOR_AT_PLAGUE:
+            if (!force) {
+                return 0;
+            }
+            building *building = building_get(f->destination_building_id);
+            if (building->has_plague) {
+                return 1;
+            }
+    }
+
+    f->wait_ticks_missile++;
+    if (f->wait_ticks_missile < 20 && !force) {
+        return 0;
+    }
+    int distance;
+    int building_with_plague_id = city_buildings_get_closest_plague(f->x, f->y, &distance);
+    if (building_with_plague_id > 0 && distance <= 25) {
+        building *building_with_plague = building_get(building_with_plague_id);
+        f->wait_ticks_missile = 0;
+        f->action_state = FIGURE_ACTION_231_DOCTOR_GOING_TO_PLAGUE;
+        f->wait_ticks = 0;
+        f->destination_x = building_with_plague->road_access_x;
+        f->destination_y = building_with_plague->road_access_y;
+        f->destination_building_id = building_with_plague_id;
+        figure_route_remove(f);
+        building_with_plague->figure_id4 = f->id;
+        return 1;
+    }
+    return 0;
+}
+
+static void heal_plague(figure *f)
+{
+    building *building_with_plague = building_get(f->destination_building_id);
+    int distance = calc_maximum_distance(f->x, f->y, building_with_plague->x, building_with_plague->y);
+
+    if (building_with_plague->has_plague && distance < 5) {
+        if (building_with_plague->sickness_duration < 95) {
+            building_with_plague->sickness_duration = 95;
+        }
+        building_with_plague->sickness_doctor_cure = 99; // Use sickness_doctor_cure = 99 to know if doctor is currently healing building (Need to stay 99 for retro-compatibility)
+    } else {
+        f->wait_ticks = 1;
+    }
+
+    f->wait_ticks--;
+    if (f->wait_ticks <= 0) {
+        if (!fight_plague(f, 1)) {
+            building *b = building_get(f->building_id);
+            int x_road, y_road;
+            if (map_closest_road_within_radius(b->x, b->y, b->size, 2, &x_road, &y_road)) {
+                f->action_state = FIGURE_ACTION_126_ROAMER_RETURNING;
+                f->destination_x = x_road;
+                f->destination_y = y_road;
+                figure_route_remove(f);
+            } else {
+                f->state = FIGURE_STATE_DEAD;
+            }
+        }
+    }
+}
+
 void figure_doctor_action(figure *f)
 {
-    culture_action(f, GROUP_FIGURE_DOCTOR_SURGEON);
+    building *b = building_get(f->building_id);
+
+    // special actions
+    if (!fight_plague(f, 0)) {
+        f->terrain_usage = TERRAIN_USAGE_ROADS;
+        culture_action(f, GROUP_FIGURE_DOCTOR_SURGEON);
+    }
+    switch (f->action_state) {
+        case FIGURE_ACTION_231_DOCTOR_GOING_TO_PLAGUE:
+            f->terrain_usage = TERRAIN_USAGE_PREFER_ROADS;
+            figure_movement_move_ticks(f, 1);
+            if (f->direction == DIR_FIGURE_AT_DESTINATION) {
+                f->action_state = FIGURE_ACTION_232_DOCTOR_AT_PLAGUE;
+                figure_route_remove(f);
+                f->roam_length = 0;
+                f->wait_ticks = 50;
+            } else if (f->direction == DIR_FIGURE_REROUTE || f->direction == DIR_FIGURE_LOST) {
+                f->state = FIGURE_STATE_DEAD;
+            } else if (f->wait_ticks++ > FIGURE_REROUTE_DESTINATION_TICKS && !fight_plague(f, 1)) {
+                int x_road, y_road;
+                if (map_closest_road_within_radius(b->x, b->y, b->size, 2, &x_road, &y_road)) {
+                    f->action_state = FIGURE_ACTION_126_ROAMER_RETURNING;
+                    f->destination_x = x_road;
+                    f->destination_y = y_road;
+                    f->wait_ticks = 0;
+                    figure_route_remove(f);
+                }
+            }
+            break;
+        case FIGURE_ACTION_232_DOCTOR_AT_PLAGUE:
+            heal_plague(f);
+            // Nonstandard number of walker animation frames
+            if (f->image_offset >= sizeof DOCTOR_HEALING_OFFSETS / sizeof DOCTOR_HEALING_OFFSETS[0]) {
+                f->image_offset = 0;
+            }
+            f->image_id = assets_get_image_id("Health_Education", "Doctor heal") +
+                DOCTOR_HEALING_OFFSETS[f->image_offset];
+            break;
+    }
 }
 
 void figure_missionary_action(figure *f)
@@ -365,6 +519,7 @@ void figure_tax_collector_action(figure *f)
                     f->action_state = FIGURE_ACTION_43_TAX_COLLECTOR_RETURNING;
                     f->destination_x = x_road;
                     f->destination_y = y_road;
+                    figure_route_remove(f);
                 } else {
                     f->state = FIGURE_STATE_DEAD;
                 }

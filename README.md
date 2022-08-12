@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 # Augustus ![](res/julius_48.png)
 
 [![Github Actions](https://github.com/Keriew/augustus/workflows/Build%20Augustus/badge.svg)](https://github.com/Keriew/Augustus/actions)
 
 Chat: [Discord](http://www.discord.gg/GamerZakh) (kindly hosted by GamerZakh)
 
-  
 | Platform | Latest release | Unstable build |
 |----------|----------------|----------------|
 | Windows  | [![Download](https://augustus.josecadete.net/badge/release/windows.svg)](https://augustus.josecadete.net/download/latest/release/windows) | [![Download](https://augustus.josecadete.net/badge/development/windows.svg)](https://augustus.josecadete.net/download/latest/development/windows)  [(Download development assets)](https://augustus.josecadete.net/download/latest/development/assets) | 
@@ -62,16 +60,12 @@ Augustus changes are explained in detail in the comprehensive manual. Below you 
 
 | Language | Manual |
 |----------|--------|
-|English   |[Download](https://github.com/Keriew/augustus/raw/master/res/manual/augustus_manual_3_0.pdf)|
+|English   |[Download](https://github.com/Keriew/augustus/raw/master/res/manual/augustus_manual_3_1.pdf)|
 |Chinese   |[Download](https://github.com/Keriew/augustus/raw/master/res/translated_manuals/augustus_manual_chinese_3.0.pdf)|
-|French   |[Download](https://github.com/Keriew/augustus/raw/master/res/translated_manuals/augustus_manual_french_3.0.pdf)|
+|French   |[Download](https://github.com/Keriew/augustus/raw/master/res/translated_manuals/augustus_manual_french_3.1.pdf)|
 |Polish   |[Download](https://github.com/Keriew/augustus/raw/master/res/translated_manuals/augustus_manual_polish_3.0.pdf)|
 |Russian   |[Download](https://github.com/Keriew/augustus/raw/master/res/translated_manuals/augustus_manual_russian_3.0.pdf)|
 
 ## Bugs
 
 See the list of [Bugs & idiosyncrasies](https://github.com/bvschaik/julius/wiki/Caesar-3-bugs) to find out more about some known bugs.
-=======
-# augustus
->>>>>>> 930ae3b4b5f0ff2fec23c6515cd0c495e1aefcd8
-

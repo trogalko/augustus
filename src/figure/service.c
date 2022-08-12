@@ -7,8 +7,10 @@
 #include "city/buildings.h"
 #include "city/finance.h"
 #include "core/config.h"
+#include "core/random.h"
 #include "figuretype/crime.h"
 #include "game/resource.h"
+#include "game/time.h"
 #include "map/building.h"
 #include "map/grid.h"
 
@@ -34,6 +36,26 @@ static int provide_culture(int x, int y, void (*callback)(building *))
         }
     }
     return serviced;
+}
+
+static void provide_sickness(int x, int y, void (*callback)(building *, int sickness_dest), int sickness_dest)
+{
+    int x_min, y_min, x_max, y_max;
+    map_grid_get_area(x, y, 1, 2, &x_min, &y_min, &x_max, &y_max);
+    for (int yy = y_min; yy <= y_max; yy++) {
+        for (int xx = x_min; xx <= x_max; xx++) {
+            int grid_offset = map_grid_offset(xx, yy);
+            int building_id = map_building_at(grid_offset);
+            if (building_id) {
+                building *b = building_get(building_id);
+                random_generate_next();
+                // 1/16 chance of spreading sickness
+                if (b->house_size && b->house_population > 0 && !(random_short() & 0xf)) {
+                    callback(b, sickness_dest);
+                }
+            }
+        }
+    }
 }
 
 static int provide_entertainment(int x, int y, int shows, void (*callback)(building *, int))
@@ -167,6 +189,13 @@ static void clinic_coverage(building *b)
 static void hospital_coverage(building *b)
 {
     b->data.house.hospital = MAX_COVERAGE;
+}
+
+static void cart_pusher_sickness(building *b, int sickness_dest)
+{
+    if (!b->sickness_level) {
+        b->sickness_level = 1 + (sickness_dest / 10);
+    }
 }
 
 static int provide_missionary_coverage(int x, int y)
@@ -344,7 +373,7 @@ static void distribute_market_resources(building *b, building *market)
         }
     }
     const model_house *model = model_get_house(level);
-    if (model->food_types > food_types_stored_max) {
+    if (model->food_types) {
         for (int i = INVENTORY_MIN_FOOD; i < INVENTORY_MAX_FOOD; i++) {
             if (b->data.house.inventory[i] >= max_food_stocks ||
                 !building_distribution_is_good_accepted(i, market)) {
@@ -520,6 +549,16 @@ int figure_service_provide_coverage(figure *f)
             break;
         case FIGURE_SURGEON:
             houses_serviced = provide_culture(x, y, hospital_coverage);
+            break;
+        case FIGURE_WAREHOUSEMAN:
+        case FIGURE_DOCKER:
+        case FIGURE_CART_PUSHER:
+            b = building_get(f->building_id);
+            building *dest_b = building_get(f->destination_building_id);
+
+            if (b->sickness_level || dest_b->sickness_level) {
+                provide_sickness(x, y, cart_pusher_sickness, dest_b->sickness_level);
+            }
             break;
         case FIGURE_MISSIONARY:
             houses_serviced = provide_missionary_coverage(x, y);

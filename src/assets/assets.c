@@ -5,23 +5,24 @@
 #include "assets/xml.h"
 #include "core/dir.h"
 #include "core/log.h"
+#include "graphics/renderer.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 static struct {
-    int loaded;
     int roadblock_image_id;
     asset_image *roadblock_image;
 } data;
 
-void assets_init(void)
+void assets_init(int force_reload, color_t **main_images, int *main_image_widths)
 {
-    if (data.loaded) {
+    if (graphics_renderer()->has_image_atlas(ATLAS_EXTRA_ASSET) && !force_reload) {
+        asset_image_reload_climate();
         return;
     }
 
-    asset_image_init_array();
+    graphics_renderer()->free_image_atlas(ATLAS_EXTRA_ASSET);
 
     const dir_listing *xml_files = dir_find_files_with_extension(ASSETS_DIRECTORY, "xml");
 
@@ -33,18 +34,29 @@ void assets_init(void)
         xml_process_assetlist_file(xml_files->files[i]);
     }
 
+    asset_image_load_all(main_images, main_image_widths);
+
     // By default, if the requested image is not found, the roadblock image will be shown.
     // This ensures compatibility with previous release versions of Augustus, which only had roadblocks
-    data.roadblock_image_id = assets_get_group_id("Roadblocks");
-    data.roadblock_image = asset_image_get_from_id(data.roadblock_image_id - MAIN_ENTRIES);
-    data.loaded = 1;
+    data.roadblock_image_id = assets_get_group_id("Logistics");
+    data.roadblock_image = asset_image_get_from_id(data.roadblock_image_id - IMAGE_MAIN_ENTRIES);
+}
+
+int assets_load_single_group(const char *file_name, color_t **main_images, int *main_image_widths)
+{
+    if (!group_create_all(1) || !asset_image_init_array()) {
+        log_error("Not enough memory to initialize extra assets. The game will probably crash.", 0, 0);
+        return 0;
+    }
+    graphics_renderer()->free_image_atlas(ATLAS_EXTRA_ASSET);
+    return xml_process_assetlist_file(file_name) && asset_image_load_all(main_images, main_image_widths);
 }
 
 int assets_get_group_id(const char *assetlist_name)
 {
     image_groups *group = group_get_from_name(assetlist_name);
     if (group) {
-        return group->first_image_index + MAIN_ENTRIES;
+        return group->first_image_index + IMAGE_MAIN_ENTRIES;
     }
     log_info("Asset group not found: ", assetlist_name, 0);
     return data.roadblock_image_id;
@@ -62,8 +74,8 @@ int assets_get_image_id(const char *assetlist_name, const char *image_name)
     }
     const asset_image *image = asset_image_get_from_id(group->first_image_index);
     while (image && image->index <= group->last_image_index) {
-        if (strcmp(image->id, image_name) == 0) {
-            return image->index + MAIN_ENTRIES;
+        if (image->id && strcmp(image->id, image_name) == 0) {
+            return image->index + IMAGE_MAIN_ENTRIES;
         }
         image = asset_image_get_from_id(image->index + 1);
     }
@@ -74,24 +86,29 @@ int assets_get_image_id(const char *assetlist_name, const char *image_name)
 
 const image *assets_get_image(int image_id)
 {
-    asset_image *img = asset_image_get_from_id(image_id - MAIN_ENTRIES);
+    asset_image *img = asset_image_get_from_id(image_id - IMAGE_MAIN_ENTRIES);
     if (!img) {
         img = data.roadblock_image;
     }
-    if (!img || (img->loaded && !img->data)) {
+    if (!img) {
         return image_get(0);
     }
     return &img->img;
 }
 
-const color_t *assets_get_image_data(int image_id)
+void assets_load_unpacked_asset(int image_id)
 {
-    asset_image *img = asset_image_get_from_id(image_id - MAIN_ENTRIES);
+    asset_image *img = asset_image_get_from_id(image_id - IMAGE_MAIN_ENTRIES);
     if (!img) {
-        img = data.roadblock_image;
+        return;
     }
-    if (!img || !asset_image_load(img)) {
-        return image_data(0);
+    const color_t *data;
+    if (img->is_reference) {
+        asset_image *referenced_asset =
+            asset_image_get_from_id(img->first_layer.calculated_image_id - IMAGE_MAIN_ENTRIES);
+        data = referenced_asset->data;
+    } else {
+        data = img->data;
     }
-    return img->data;
+    graphics_renderer()->load_unpacked_image(&img->img, data);
 }

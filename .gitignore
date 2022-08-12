@@ -3,7 +3,8 @@
 *.kdev4
 .vs
 .vscode
-/CMakeSettings.json
+/CMakeSettings.json*
+/CMakePresets.json*
 
 # Generated resources
 src/platform/version.c
@@ -11,6 +12,7 @@ res/version.rc
 res/version.txt
 res/julius.icns
 res/shell.html
+res/packed_assets/
 
 # Build output and data directories
 /build*/
@@ -23,6 +25,10 @@ ext/SDL2/*/
 *.swp
 .vscode
 ext/mpg123*
+
+# Asset packer
+/res/asset_packer*/build*/
+/res/asset_packer/.ionide/
 
 # Android
 *.iml
@@ -42,3 +48,7 @@ local.properties
 /android/play-publisher.json
 /android/augustus/src/main/play
 /android/julius/src/main/play
+
+# lib files
+ext/SDL2/*.zip
+ext/SDL2/*.tar.gz

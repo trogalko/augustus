@@ -33,14 +33,20 @@ static int is_problem_cartpusher(int figure_id)
 
 void city_overlay_problems_prepare_building(building *b)
 {
-    if (b->house_size) {
-        return;
-    }
+    b = building_main(b);
+
     if (b->strike_duration_days > 0) {
         b->show_on_problem_overlay = 1;
         return;
     }
-    if (b->type == BUILDING_FOUNTAIN || b->type == BUILDING_BATHHOUSE) {
+
+    if (b->has_plague) {
+        b->show_on_problem_overlay = 1;
+    } else if (b->state == BUILDING_STATE_MOTHBALLED) {
+        b->show_on_problem_overlay = 1;
+    } else if (!b->num_workers && building_get_laborers(b->type)) {
+        b->show_on_problem_overlay = 1;
+    } else if (b->type == BUILDING_FOUNTAIN || b->type == BUILDING_BATHHOUSE) {
         if (!b->has_water_access) {
             b->show_on_problem_overlay = 1;
         }
@@ -54,8 +60,18 @@ void city_overlay_problems_prepare_building(building *b)
         } else if (b->loads_stored <= 0) {
             b->show_on_problem_overlay = 1;
         }
-    } else if (b->state == BUILDING_STATE_MOTHBALLED) {
+    } else if ((b->type == BUILDING_THEATER || b->type == BUILDING_AMPHITHEATER || b->type == BUILDING_ARENA ||
+        b->type == BUILDING_COLOSSEUM || b->type == BUILDING_HIPPODROME) && !b->data.entertainment.days1) {
         b->show_on_problem_overlay = 1;
+    } else if ((b->type == BUILDING_ARENA || b->type == BUILDING_COLOSSEUM) && !b->data.entertainment.days2) {
+        b->show_on_problem_overlay = 1;
+    }
+
+    if (b->show_on_problem_overlay) {
+        while (b->next_part_building_id) {
+            b = building_get(b->next_part_building_id);
+            b->show_on_problem_overlay = 1;
+        }
     }
 }
 
@@ -237,11 +253,28 @@ static int get_tooltip_crime(tooltip_context *c, const building *b)
 
 static int get_tooltip_problems(tooltip_context *c, const building *b)
 {
-    if (b->house_size) {
-        return 0;
+    const building *main_building = b;
+
+    int guard = 0;
+    while (guard < 9) {
+        if (main_building->prev_part_building_id <= 0) {
+            break;
+        }
+        main_building = building_get(main_building->prev_part_building_id);
+        guard++;
+    }
+    if (guard < 9) {
+        b = main_building;
+    }
+    if (b->has_plague) {
+        c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_PLAGUE;
     }
     if (b->strike_duration_days > 0) {
         c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_STRIKE;
+    } else if (b->state == BUILDING_STATE_MOTHBALLED) {
+        c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_MOTHBALLED;
+    } else if (!b->num_workers && building_get_laborers(b->type)) {
+        c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_NO_LABOR;
     } else if (b->type == BUILDING_FOUNTAIN || b->type == BUILDING_BATHHOUSE) {
         c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_NO_WATER_ACCESS;
     } else if (b->type >= BUILDING_WHEAT_FARM && b->type <= BUILDING_CLAY_PIT) {
@@ -254,8 +287,28 @@ static int get_tooltip_problems(tooltip_context *c, const building *b)
         } else if (b->loads_stored <= 0) {
             c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_NO_RESOURCES;
         }
-    } else if (b->state == BUILDING_STATE_MOTHBALLED) {
-        c->translation_key = TR_TOOLTIP_OVERLAY_PROBLEMS_MOTHBALLED;
+    } else if (b->type == BUILDING_THEATER && !b->data.entertainment.days1) {
+        c->text_group = 72;
+        return 5;
+    } else if (b->type == BUILDING_AMPHITHEATER) {
+        if (!b->data.entertainment.days1) {
+            c->text_group = 71;
+            return 7;
+        } else if (!b->data.entertainment.days2) {
+            c->text_group = 71;
+            return 9;
+        }
+    } else if (b->type == BUILDING_ARENA || b->type == BUILDING_COLOSSEUM) {
+        if (!b->data.entertainment.days1) {
+            c->text_group = 74;
+            return 7;
+        } else if (!b->data.entertainment.days2) {
+            c->text_group = 74;
+            return 9;
+        }
+    } else if (b->type == BUILDING_HIPPODROME && !b->data.entertainment.days1) {
+        c->text_group = 73;
+        return 5;
     }
     if (c->translation_key) {
         return 1;
@@ -334,7 +387,7 @@ static int terrain_on_native_overlay(void)
         TERRAIN_GARDEN | TERRAIN_ELEVATION | TERRAIN_ACCESS_RAMP | TERRAIN_RUBBLE;
 }
 
-static void draw_footprint_native(int x, int y, int grid_offset)
+static void draw_footprint_native(int x, int y, float scale, int grid_offset)
 {
     if (!map_property_is_draw_tile(grid_offset)) {
         return;
@@ -343,24 +396,24 @@ static void draw_footprint_native(int x, int y, int grid_offset)
         if (map_terrain_is(grid_offset, TERRAIN_BUILDING)) {
             city_with_overlay_draw_building_footprint(x, y, grid_offset, 0);
         } else {
-            image_draw_isometric_footprint_from_draw_tile(map_image_at(grid_offset), x, y, 0);
+            image_draw_isometric_footprint_from_draw_tile(map_image_at(grid_offset), x, y, 0, scale);
         }
     } else if (map_terrain_is(grid_offset, TERRAIN_AQUEDUCT | TERRAIN_WALL)) {
         // display grass
         int image_id = image_group(GROUP_TERRAIN_GRASS_1) + (map_random_get(grid_offset) & 7);
-        image_draw_isometric_footprint_from_draw_tile(image_id, x, y, 0);
+        image_draw_isometric_footprint_from_draw_tile(image_id, x, y, 0, scale);
     } else if (map_terrain_is(grid_offset, TERRAIN_BUILDING)) {
         city_with_overlay_draw_building_footprint(x, y, grid_offset, 0);
     } else {
         if (map_property_is_native_land(grid_offset)) {
-            image_draw_isometric_footprint_from_draw_tile(image_group(GROUP_TERRAIN_DESIRABILITY) + 1, x, y, 0);
+            image_draw_isometric_footprint_from_draw_tile(image_group(GROUP_TERRAIN_DESIRABILITY) + 1, x, y, 0, scale);
         } else {
-            image_draw_isometric_footprint_from_draw_tile(map_image_at(grid_offset), x, y, 0);
+            image_draw_isometric_footprint_from_draw_tile(map_image_at(grid_offset), x, y, 0, scale);
         }
     }
 }
 
-static void draw_top_native(int x, int y, int grid_offset)
+static void draw_top_native(int x, int y, float scale, int grid_offset)
 {
     if (!map_property_is_draw_tile(grid_offset)) {
         return;
@@ -371,7 +424,7 @@ static void draw_top_native(int x, int y, int grid_offset)
             if (map_property_is_deleted(grid_offset) && map_property_multi_tile_size(grid_offset) == 1) {
                 color_mask = COLOR_MASK_RED;
             }
-            image_draw_isometric_top_from_draw_tile(map_image_at(grid_offset), x, y, color_mask);
+            image_draw_isometric_top_from_draw_tile(map_image_at(grid_offset), x, y, color_mask, scale);
         }
     } else if (map_building_at(grid_offset)) {
         city_with_overlay_draw_building_top(x, y, grid_offset);

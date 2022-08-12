@@ -1,11 +1,13 @@
 #include "terrain.h"
 
+#include "city/map.h"
+#include "core/image.h"
 #include "map/grid.h"
 #include "map/ring.h"
 #include "map/routing.h"
 
-static grid_u16 terrain_grid;
-static grid_u16 terrain_grid_backup;
+static grid_u32 terrain_grid;
+static grid_u32 terrain_grid_backup;
 
 int map_terrain_is(int grid_offset, int terrain)
 {
@@ -20,6 +22,18 @@ int map_terrain_is_superset(int grid_offset, int terrain_sum)
 int map_terrain_get(int grid_offset)
 {
     return terrain_grid.items[grid_offset];
+}
+
+int map_terrain_get_from_buffer_16(buffer *buf, int grid_offset)
+{
+    buffer_set(buf, grid_offset * sizeof(uint16_t));
+    return buffer_read_u16(buf);
+}
+
+int map_terrain_get_from_buffer_32(buffer *buf, int grid_offset)
+{
+    buffer_set(buf, grid_offset * sizeof(uint32_t));
+    return buffer_read_u32(buf);
 }
 
 void map_terrain_set(int grid_offset, int terrain)
@@ -63,7 +77,7 @@ void map_terrain_remove_with_radius(int x, int y, int size, int radius, int terr
 
 void map_terrain_remove_all(int terrain)
 {
-    map_grid_and_u16(terrain_grid.items, ~terrain);
+    map_grid_and_u32(terrain_grid.items, ~terrain);
 }
 
 int map_terrain_count_directly_adjacent_with_type(int grid_offset, int terrain)
@@ -166,6 +180,25 @@ int map_terrain_exists_tile_in_radius_with_type(int x, int y, int size, int radi
     return 0;
 }
 
+int map_terrain_exists_rock_in_radius(int x, int y, int size, int radius)
+{
+    int x_min, y_min, x_max, y_max;
+    map_grid_get_area(x, y, size, radius, &x_min, &y_min, &x_max, &y_max);
+
+    for (int yy = y_min; yy <= y_max; yy++) {
+        for (int xx = x_min; xx <= x_max; xx++) {
+            int offset = map_grid_offset(xx, yy);
+            if (offset == city_map_entry_flag()->grid_offset || offset == city_map_exit_flag()->grid_offset) {
+                continue;
+            }
+            if (map_terrain_is(offset, TERRAIN_ROCK)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int map_terrain_exists_clear_tile_in_radius(int x, int y, int size, int radius, int except_grid_offset,
     int *x_tile, int *y_tile)
 {
@@ -210,7 +243,8 @@ int map_terrain_has_only_rocks_trees_in_ring(int x, int y, int distance)
     for (int i = start; i < end; i++) {
         const ring_tile *tile = map_ring_tile(i);
         if (map_ring_is_inside_map(x + tile->x, y + tile->y)) {
-            if (!map_terrain_is(base_offset + tile->grid_offset, TERRAIN_ROCK | TERRAIN_TREE)) {
+            if (!map_terrain_is(base_offset + tile->grid_offset,
+                    TERRAIN_ROCK | TERRAIN_TREE | TERRAIN_ORIGINALLY_TREE)) {
                 return 0;
             }
         }
@@ -349,17 +383,17 @@ void map_terrain_add_triumphal_arch_roads(int x, int y, int orientation)
 
 void map_terrain_backup(void)
 {
-    map_grid_copy_u16(terrain_grid.items, terrain_grid_backup.items);
+    map_grid_copy_u32(terrain_grid.items, terrain_grid_backup.items);
 }
 
 void map_terrain_restore(void)
 {
-    map_grid_copy_u16(terrain_grid_backup.items, terrain_grid.items);
+    map_grid_copy_u32(terrain_grid_backup.items, terrain_grid.items);
 }
 
 void map_terrain_clear(void)
 {
-    map_grid_clear_u16(terrain_grid.items);
+    map_grid_clear_u32(terrain_grid.items);
 }
 
 void map_terrain_init_outside_map(void)
@@ -372,7 +406,7 @@ void map_terrain_init_outside_map(void)
         int y_outside_map = y < y_start || y >= y_start + map_height;
         for (int x = 0; x < GRID_SIZE; x++) {
             if (y_outside_map || x < x_start || x >= x_start + map_width) {
-                terrain_grid.items[x + GRID_SIZE * y] = TERRAIN_TREE | TERRAIN_WATER;
+                terrain_grid.items[x + GRID_SIZE * y] = TERRAIN_MAP_EDGE;
             }
         }
     }
@@ -380,10 +414,56 @@ void map_terrain_init_outside_map(void)
 
 void map_terrain_save_state(buffer *buf)
 {
-    map_grid_save_state_u16(terrain_grid.items, buf);
+    map_grid_save_state_u32(terrain_grid.items, buf);
 }
 
-void map_terrain_load_state(buffer *buf)
+void map_terrain_save_state_legacy(buffer *buf)
 {
-    map_grid_load_state_u16(terrain_grid.items, buf);
+    map_grid_save_state_u32_to_u16(terrain_grid.items, buf);
+}
+
+static void determine_original_trees(buffer *images, int legacy_buffer)
+{
+    for (int y = 0; y < GRID_SIZE; y++) {
+        for (int x = 0; x < GRID_SIZE; x++) {
+            if (terrain_grid.items[x + GRID_SIZE * y] & TERRAIN_TREE &&
+                !(terrain_grid.items[x + GRID_SIZE * y] & TERRAIN_WATER)) {
+                terrain_grid.items[x + GRID_SIZE * y] |= TERRAIN_ORIGINALLY_TREE;
+                if (images) {
+                    buffer_set(images, (x + GRID_SIZE * y) * (legacy_buffer ? 2 : 4));
+                    int image_id = legacy_buffer ? buffer_read_u16(images) : buffer_read_u32(images);
+                    int image_tree_group = image_group(GROUP_TERRAIN_TREE);
+                    int ring;
+                    if (image_id >= image_tree_group + 8 && image_id < image_tree_group + 16) {
+                        ring = 1;
+                    } else if (image_id >= image_tree_group + 16 && image_id < image_tree_group + 24) {
+                        ring = 2;
+                    } else if (image_id >= image_tree_group + 24 && image_id < image_tree_group + 32) {
+                        ring = 3;
+                    } else {
+                        continue;
+                    }
+                    int start = map_ring_start(1, ring);
+                    int end = map_ring_end(1, ring);
+                    int base_offset = x + GRID_SIZE * y;
+                    for (int i = start; i < end; i++) {
+                        int current_offset = base_offset + map_ring_tile(i)->grid_offset;
+                        if (map_grid_is_valid_offset(current_offset)) {
+                            map_terrain_add(current_offset, TERRAIN_ORIGINALLY_TREE);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void map_terrain_load_state(buffer *buf, int expanded_terrain_data, buffer *images, int legacy_image_buffer)
+{
+    if (expanded_terrain_data) {
+        map_grid_load_state_u32(terrain_grid.items, buf);
+    } else {
+        map_grid_load_state_u16_to_u32(terrain_grid.items, buf);
+    }
+    determine_original_trees(images, legacy_image_buffer);
 }

@@ -88,6 +88,16 @@ void figure_delete(figure *f)
                 b->figure_id4 = 0;
             }
             break;
+        case FIGURE_SURGEON:
+        case FIGURE_DOCTOR:
+            // if doctor was going to illness plague building, then remove figure_id4 to the dock
+            if (f->destination_building_id) {
+                building *b_dest = building_get(f->destination_building_id);
+                if (b_dest->figure_id4 && f->id == b_dest->figure_id4) {
+                    b_dest->figure_id4 = 0;
+                }
+            }
+            break;
         case FIGURE_BALLISTA:
         case FIGURE_WATCHTOWER_ARCHER:
             b->figure_id4 = 0;
@@ -131,6 +141,7 @@ void figure_delete(figure *f)
         case FIGURE_DELIVERY_BOY:
         case FIGURE_PATRICIAN:
         case FIGURE_MESS_HALL_COLLECTOR:
+        case FIGURE_TRADE_SHIP:
             // nothing to do here
             break;
         case FIGURE_WATCHMAN:
@@ -140,6 +151,13 @@ void figure_delete(figure *f)
                 b->figure_id = 0;
             }
             break;
+        case FIGURE_MESS_HALL_FORT_SUPPLIER:
+        {
+            building *fort = building_get(f->destination_building_id);
+            if (fort->figure_id2 == f->id) {
+                fort->figure_id2 = 0;
+            }
+        }
         default:
             if (f->building_id) {
                 b->figure_id = 0;

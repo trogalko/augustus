@@ -6,6 +6,7 @@
 #include "city/ratings.h"
 #include "city/request.h"
 #include "city/resource.h"
+#include "core/calc.h"
 #include "core/lang.h"
 #include "core/string.h"
 #include "empire/city.h"
@@ -58,9 +59,9 @@ static void draw_request(int index, const scenario_request *request)
     }
 
     button_border_draw(38, 96 + 42 * index, 560, 40, 0);
-    text_draw_number(request->amount, '@', " ", 40, 102 + 42 * index, FONT_NORMAL_WHITE);
+    text_draw_number(request->amount, '@', " ", 40, 102 + 42 * index, FONT_NORMAL_WHITE, 0);
     int resource_offset = request->resource + resource_image_offset(request->resource, RESOURCE_IMAGE_ICON);
-    image_draw(image_group(GROUP_RESOURCE_ICONS) + resource_offset, 110, 100 + 42 * index);
+    image_draw(image_group(GROUP_RESOURCE_ICONS) + resource_offset, 110, 100 + 42 * index, COLOR_MASK_NONE, SCALE_NONE);
     lang_text_draw(23, request->resource, 150, 102 + 42 * index, FONT_NORMAL_WHITE);
 
     int width = lang_text_draw_amount(8, 4, request->months_to_comply, 310, 102 + 42 * index, FONT_NORMAL_WHITE);
@@ -69,7 +70,7 @@ static void draw_request(int index, const scenario_request *request)
     if (request->resource == RESOURCE_DENARII) {
         // request for money
         int treasury = city_finance_treasury();
-        width = text_draw_number(treasury, '@', " ", 40, 120 + 42 * index, FONT_NORMAL_WHITE);
+        width = text_draw_number(treasury, '@', " ", 40, 120 + 42 * index, FONT_NORMAL_WHITE, 0);
         width += lang_text_draw(52, 44, 40 + width, 120 + 42 * index, FONT_NORMAL_WHITE);
         if (treasury < request->amount) {
             lang_text_draw(52, 48, 80 + width, 120 + 42 * index, FONT_NORMAL_WHITE);
@@ -82,7 +83,7 @@ static void draw_request(int index, const scenario_request *request)
         int amount_stored = city_resource_get_amount_including_granaries(request->resource,
             request->amount, &using_granaries);
         int y_offset = 120 + 42 * index;
-        width = text_draw_number(amount_stored, '@', " ", 40, y_offset, FONT_NORMAL_WHITE);
+        width = text_draw_number(amount_stored, '@', " ", 40, y_offset, FONT_NORMAL_WHITE, 0);
         if (using_granaries) {
             width += text_draw(translation_for(TR_ADVISOR_IN_STORAGE), 40 + width, y_offset, FONT_NORMAL_WHITE, 0);
         } else {
@@ -101,12 +102,12 @@ static int draw_background(void)
     city_emperor_calculate_gift_costs();
 
     outer_panel_draw(0, 0, 40, ADVISOR_HEIGHT);
-    image_draw(image_group(GROUP_ADVISOR_ICONS) + 2, 10, 10);
+    image_draw(image_group(GROUP_ADVISOR_ICONS) + 2, 10, 10, COLOR_MASK_NONE, SCALE_NONE);
 
     text_draw(scenario_player_name(), 60, 12, FONT_LARGE_BLACK, 0);
 
     int width = lang_text_draw(52, 0, 60, 44, FONT_NORMAL_BLACK);
-    text_draw_number(city_rating_favor(), '@', " ", 60 + width, 44, FONT_NORMAL_BLACK);
+    text_draw_number(city_rating_favor(), '@', " ", 60 + width, 44, FONT_NORMAL_BLACK, 0);
 
     lang_text_draw_multiline(52, city_rating_favor() / 5 + 22, 60, 60, 544, FONT_NORMAL_BLACK);
 
@@ -116,7 +117,7 @@ static int draw_background(void)
     if (city_request_has_troop_request()) {
         // can send to distant battle
         button_border_draw(38, 96, 560, 40, 0);
-        image_draw(image_group(GROUP_RESOURCE_ICONS) + RESOURCE_WEAPONS, 50, 106);
+        image_draw(image_group(GROUP_RESOURCE_ICONS) + RESOURCE_WEAPONS, 50, 106, COLOR_MASK_NONE, SCALE_NONE);
         width = lang_text_draw(52, 72, 80, 102, FONT_NORMAL_WHITE);
         lang_text_draw(21, empire_city_get(city_military_distant_battle_city())->name_id,
             80 + width, 102, FONT_NORMAL_WHITE);
@@ -155,7 +156,7 @@ static void draw_foreground(void)
 
     button_border_draw(70, 393, 500, 20, focus_button_id == 2);
     width = lang_text_draw(52, city_emperor_salary_rank() + 4, 120, 398, FONT_NORMAL_WHITE);
-    width += text_draw_number(city_emperor_salary_amount(), '@', " ", 120 + width, 398, FONT_NORMAL_WHITE);
+    width += text_draw_number(city_emperor_salary_amount(), '@', " ", 120 + width, 398, FONT_NORMAL_WHITE, 0);
     lang_text_draw(52, 3, 120 + width, 398, FONT_NORMAL_WHITE);
 
     button_border_draw(320, 341, 250, 20, focus_button_id == 3);
@@ -171,7 +172,9 @@ static void draw_foreground(void)
 
 static int handle_mouse(const mouse *m)
 {
-    return generic_buttons_handle_mouse(m, 0, 0, imperial_buttons, 8, &focus_button_id);
+    int request_count = city_request_has_troop_request() + scenario_request_count_visible();
+    request_count = calc_bound(request_count, 0, CITY_REQUEST_MAX_ACTIVE);
+    return generic_buttons_handle_mouse(m, 0, 0, imperial_buttons, 3 + request_count, &focus_button_id);
 }
 
 static void button_donate_to_city(int param1, int param2)

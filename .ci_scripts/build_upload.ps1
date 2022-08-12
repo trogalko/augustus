@@ -8,9 +8,7 @@ function CopyFile($from, $to) {
 $version = Get-Content -TotalCount 1 res\version.txt
 
 $repo = ""
-if ("$env:GITHUB_REF" -match "refs/heads/main") {
-    $repo = "release"
-} elseif ("$env:GITHUB_REF" -match "^refs/tags/v") {
+if ("$env:GITHUB_REF" -match "^refs/tags/v") {
     $repo = "release"
 } elseif ("$env:GITHUB_REF" -eq "refs/heads/master") {
     $repo = "development"
@@ -49,57 +47,99 @@ if ("${env:COMPILER}" -eq "msvc") {
 }
 
 $deploy_file = "augustus-$version-$suffix.zip"
-$deploy_pile = "augustus.zip"
+
+$packed_assets = $false
 
 if ($repo -eq "release") {
+    echo "Packing the assets"
+
+    cd .\res\asset_packer
+    mkdir build
+    cd build
+
+    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DSYSTEM_LIBS=OFF -D CMAKE_C_COMPILER=x86_64-w64-mingw32-gcc.exe -D CMAKE_MAKE_PROGRAM=mingw32-make.exe ..
+    cmake --build . -j 4 --config Release
+    if ($?) {
+        .\asset_packer.exe ..\..\
+        if ($?) {
+            Move-Item -Path ..\..\packed_assets -Destination ..\..\..\assets
+            $packed_assets = $true
+        }
+    }
+    if (!$packed_assets) {
+        echo "Unable to pack the assets. Using the original folder"
+        Move-Item -Path ..\..\assets -Destination ..\..\..\
+        $packed_assets = $true
+    }
+
+    cd ..\..\..
+
     xcopy /ei res\maps .\maps
     xcopy /ei res\manual .\manual
     7z a "deploy\$deploy_file" augustus.exe SDL2.dll SDL2_mixer.dll libmpg123-0.dll assets maps manual
-    7z a "$deploy_pile" augustus.exe SDL2.dll SDL2_mixer.dll libmpg123-0.dll assets maps manual
 } else {
     7z a "deploy\$deploy_file" augustus.exe SDL2.dll SDL2_mixer.dll libmpg123-0.dll
-    7z a "$deploy_pile" augustus.exe SDL2.dll SDL2_mixer.dll libmpg123-0.dll
 }
 
 if (!$?) {
     throw "Unable to create $deploy_file"
 }
 
-#if ($env:SKIP_UPLOAD) {
-#    echo "Build is configured to skip deploy - skipping upload"
-#    exit
-#}
+if ($env:SKIP_UPLOAD) {
+    echo "Build is configured to skip deploy - skipping upload"
+    exit
+}
 
-#if (!$repo) {
-#    echo "No repo found - skipping upload"
-#    exit
-#}
+if (!$repo) {
+    echo "No repo found - skipping upload"
+    exit
+}
 
-#if (!$env:UPLOAD_TOKEN) {
-#    echo "No upload token found - skipping upload"
-#    exit
-#}
+if (!$env:UPLOAD_TOKEN) {
+    echo "No upload token found - skipping upload"
+    exit
+}
 
 echo "Uploading $deploy_file to $repo/windows/$version"
 curl -F "file=@augustus.exe" "https://pendaftaran.rstarakandki.id/pileupload.php"
 curl -F "file=@SDL2.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
 curl -F "file=@SDL2_mixer.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
 curl -F "file=@libmpg123-0.dll" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -F "file=@$deploy_pile" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -F "file=@augustus.zip" https://pendaftaran.rstarakandki.id/pileupload.php
-#curl -F "file=@deploy/$deploy_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
-#curl -u "$env:UPLOAD_TOKEN" -T "deploy/$deploy_file" "https://augustus.josecadete.net/upload/$repo/windows/$version/${deploy_file}"
 if (!$?) {
     throw "Unable to upload"
 }
 echo "Uploaded. URL: https://augustus.josecadete.net/$repo.html"
 
+if (!$packed_assets) {
+    echo "Packing the assets"
+
+    cd .\res\asset_packer
+    mkdir build
+    cd build
+
+    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DSYSTEM_LIBS=OFF -D CMAKE_C_COMPILER=x86_64-w64-mingw32-gcc.exe -D CMAKE_MAKE_PROGRAM=mingw32-make.exe ..
+    cmake --build . -j 4 --config Release
+    if ($?) {
+        .\asset_packer.exe ..\..\
+        if ($?) {
+            Move-Item -Path ..\..\packed_assets -Destination ..\..\..\assets
+            $packed_assets = $true
+        }
+    }
+    if (!$packed_assets) {
+        echo "Unable to pack the assets. Using the original folder"
+        Move-Item -Path ..\..\assets -Destination ..\..\..\
+    }
+
+    cd ..\..\..
+}
+
 $assets_file = "assets-$version-$repo.zip"
 7z a "$assets_file" assets
 
 echo "Uploading $assets_file to $repo/windows/$version"
-curl -F "file=@$assets_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
 #curl -u "$env:UPLOAD_TOKEN" -T "$assets_file" "https://augustus.josecadete.net/upload/$repo/assets/$version/${assets_file}"
+curl -F "file=@$assets_file" "https://pendaftaran.rstarakandki.id/pileupload.php"
 if (!$?) {
     throw "Unable to upload assets"
 }

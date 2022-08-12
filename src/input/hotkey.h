@@ -8,12 +8,14 @@ typedef struct {
     // fixed keys with multiple functions
     int enter_pressed;
     int escape_pressed;
+    int f5_pressed;
     // keys with specific function
     int cycle_legion;
     int decrease_game_speed;
     int increase_game_speed;
     int rotate_map_left;
     int rotate_map_right;
+    int rotate_map_north;
     int show_advisor;
     int show_overlay;
     int show_overlay_relative;
@@ -31,6 +33,8 @@ typedef struct {
     int copy_building_settings;
     int paste_building_settings;
     int undo;
+    int show_empire_map;
+    int show_messages;
 } hotkeys;
 
 void hotkey_install_mapping(hotkey_mapping *mappings, int num_mappings);
@@ -40,6 +44,7 @@ void hotkey_reset_state(void);
 
 void hotkey_key_pressed(key_type key, key_modifier_type modifiers, int repeat);
 void hotkey_key_released(key_type key, key_modifier_type modifiers);
+int hotkey_shift_pressed(void);
 
 void hotkey_set_value_for_action(hotkey_action action, int value);
 

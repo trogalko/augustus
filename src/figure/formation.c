@@ -328,20 +328,20 @@ void formation_change_morale(formation *m, int amount)
 void formation_update_morale_after_death(formation *m)
 {
     formation_calculate_figures();
-    int pct_dead = calc_percentage(1, m->num_figures);
+    int pct_dead = calc_percentage(1, m->num_figures + 1);
     int morale;
     if (pct_dead < 8) {
-        morale = -5;
+        morale = -4;
     } else if (pct_dead < 10) {
-        morale = -7;
+        morale = -6;
     } else if (pct_dead < 14) {
-        morale = -10;
+        morale = -8;
     } else if (pct_dead < 20) {
-        morale = -12;
+        morale = -10;
     } else if (pct_dead < 30) {
-        morale = -15;
+        morale = -12;
     } else {
-        morale = -20;
+        morale = -16;
     }
     formation_change_morale(m, morale);
 }
@@ -371,7 +371,7 @@ void formation_update_monthly_morale_deployed(void)
         if (f->is_legion) {
             if (!f->is_at_fort && !f->in_distant_battle) {
                 if (f->morale <= 20 && !f->months_low_morale && !f->months_very_low_morale) {
-                    change_all_morale(-10, 10);
+                    change_all_morale(-5, 10);
                 }
                 if (f->morale <= 10) {
                     f->months_very_low_morale++;
@@ -381,7 +381,7 @@ void formation_update_monthly_morale_deployed(void)
             }
         } else { // enemy
             if (f->morale <= 20 && !f->months_low_morale && !f->months_very_low_morale) {
-                change_all_morale(10, -10);
+                change_all_morale(5, -10);
             }
             if (f->morale <= 10) {
                 f->months_very_low_morale++;
@@ -505,6 +505,11 @@ void formation_set_home(formation *m, int x, int y)
     m->y_home = y;
 }
 
+void formation_retreat(formation *m)
+{
+    m->months_low_morale = 1;
+}
+
 static void clear_figures(void)
 {
     for (int i = 1; i < formations.size; i++) {
@@ -556,7 +561,7 @@ void formation_calculate_figures(void)
     clear_figures();
     for (int i = 1; i < figure_count(); i++) {
         figure *f = figure_get(i);
-        if (f->state != FIGURE_STATE_ALIVE) {
+        if (figure_is_dead(f)) {
             continue;
         }
         if (!figure_is_legion(f) && !figure_is_enemy(f) && !figure_is_herd(f)) {

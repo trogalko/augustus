@@ -104,7 +104,7 @@ static void draw_background(void)
     outer_panel_draw(0, 28, 30, 28);
 
     button_border_draw(18, 278, 184, 144, 0);
-    image_draw(image_group(GROUP_EDITOR_SCENARIO_IMAGE) + scenario_image_id(), 20, 280);
+    image_draw(image_group(GROUP_EDITOR_SCENARIO_IMAGE) + scenario_image_id(), 20, 280, COLOR_MASK_NONE, SCALE_NONE);
 
     graphics_reset_dialog();
 }
@@ -129,9 +129,9 @@ static void draw_foreground(void)
     scenario_editor_request_get(0, &request);
     if (request.resource) {
         lang_text_draw_year(scenario_property_start_year() + request.year, 222, 165, FONT_NORMAL_BLACK);
-        int width = text_draw_number(request.amount, '@', " ", 312, 165, FONT_NORMAL_BLACK);
+        int width = text_draw_number(request.amount, '@', " ", 312, 165, FONT_NORMAL_BLACK, 0);
         int offset = request.resource + resource_image_offset(request.resource, RESOURCE_IMAGE_ICON);
-        image_draw(image_group(GROUP_EDITOR_RESOURCE_ICONS) + offset, 322 + width, 160);
+        image_draw(image_group(GROUP_EDITOR_RESOURCE_ICONS) + offset, 322 + width, 160, COLOR_MASK_NONE, SCALE_NONE);
     } else {
         lang_text_draw_centered(44, 19, 212, 165, 250, FONT_NORMAL_BLACK);
     }
@@ -147,7 +147,7 @@ static void draw_foreground(void)
     scenario_editor_invasion_get(0, &invasion);
     if (invasion.type) {
         lang_text_draw_year(scenario_property_start_year() + invasion.year, 222, 245, FONT_NORMAL_BLACK);
-        int width = text_draw_number(invasion.amount, '@', " ", 302, 245, FONT_NORMAL_BLACK);
+        int width = text_draw_number(invasion.amount, '@', " ", 302, 245, FONT_NORMAL_BLACK, 0);
         lang_text_draw(34, invasion.type, 302 + width, 245, FONT_NORMAL_BLACK);
     } else {
         lang_text_draw_centered(44, 20, 212, 245, 250, FONT_NORMAL_BLACK);
@@ -251,7 +251,7 @@ static void button_demand_changes(int param1, int param2)
 static void change_climate(int param1, int param2)
 {
     scenario_editor_cycle_climate();
-    image_load_climate(scenario_property_climate(), 1, 0);
+    image_load_climate(scenario_property_climate(), 1, 0, 0);
     widget_minimap_invalidate();
     window_request_refresh();
 }

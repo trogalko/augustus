@@ -16,6 +16,8 @@
 #define MAX_STORAGE 16
 #define INFINITE 10000
 
+#define RECORD_PRODUCTION_MONTHS 12
+
 #define MERCURY_BLESSING_LOADS 3
 
 enum {
@@ -150,7 +152,7 @@ static void force_strike(int num_strikes)
         }
     }
     if (random_industry_strikes(num_strikes)) {
-        city_warning_show(WARNING_SECESSION);
+        city_warning_show(WARNING_SECESSION, NEW_WARNING_SLOT);
     }
 }
 
@@ -258,8 +260,14 @@ int building_industry_has_produced_resource(building *b)
     return b->data.industry.progress >= max_progress(b);
 }
 
+static void update_production_stats(building *b)
+{
+    b->data.industry.production_current_month += 100;
+}
+
 void building_industry_start_new_production(building *b)
 {
+    update_production_stats(b);
     b->data.industry.progress = 0;
     if (b->subtype.workshop_type) {
         if (b->loads_stored) {
@@ -331,6 +339,18 @@ void building_workshop_add_raw_material(building *b)
     }
 }
 
+int building_has_workshop_for_raw_material_with_room(int workshop_type, int road_network_id)
+{
+    building_type type = OUTPUT_TYPE_TO_INDUSTRY[workshop_type];
+    for (building *b = building_first_of_type(type); b; b = b->next_of_type) {
+        if (b->state == BUILDING_STATE_IN_USE && b->has_road_access && b->distance_from_entry > 0 &&
+            b->road_network_id == road_network_id && b->loads_stored < 2) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int building_get_workshop_for_raw_material_with_room(int x, int y,
     int resource, int road_network_id, map_point *dst)
 {
@@ -396,6 +416,28 @@ int building_get_workshop_for_raw_material(int x, int y, int resource, int road_
     return 0;
 }
 
+void building_industry_advance_stats(void)
+{
+    for (int i = MIN_FARM; i <= MAX_WORKSHOP; i++) {
+        building_type type = INDUSTRY_TYPES[i];
+        for (building *b = building_first_of_type(type); b; b = b->next_of_type) {
+            if (b->state != BUILDING_STATE_IN_USE && b->state != BUILDING_STATE_MOTHBALLED) {
+                continue;
+            }
+            if (b->data.industry.age_months < RECORD_PRODUCTION_MONTHS) {
+                b->data.industry.age_months++;
+            }
+            int sum_months = b->data.industry.average_production_per_month * (b->data.industry.age_months - 1);
+            int pending_production_percentage = b->type == BUILDING_WHARF ?
+                0 : calc_percentage(b->data.industry.progress, max_progress(b));
+            pending_production_percentage = calc_bound(pending_production_percentage, 0, 100);
+            sum_months += b->data.industry.production_current_month + pending_production_percentage;
+            b->data.industry.average_production_per_month = sum_months / b->data.industry.age_months;
+            b->data.industry.production_current_month = -pending_production_percentage;
+        }
+    }
+}
+
 void building_industry_start_strikes(void)
 {
     if (city_data.sentiment.value >= 55) {
@@ -424,6 +466,6 @@ void building_industry_start_strikes(void)
     city_data.building.num_striking_industries += strikes;
 
     if (strikes) {
-        city_warning_show(WARNING_SECESSION);
+        city_warning_show(WARNING_SECESSION, NEW_WARNING_SLOT);
     }
 }
